@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AiController;
+use App\Http\Controllers\SocialiteController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -19,3 +21,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 Route::post('/generate-profile',[AiController::class,'index']);
+Route::post('/graph-interaction',[SocialiteController::class,'handleGraphInteraction']);
