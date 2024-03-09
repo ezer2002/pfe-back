@@ -20,5 +20,7 @@ use App\Http\Controllers\SocialiteController;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
 Route::post('/generate-profile',[AiController::class,'index']);
+
 Route::post('/graph-interaction',[SocialiteController::class,'handleGraphInteraction']);
