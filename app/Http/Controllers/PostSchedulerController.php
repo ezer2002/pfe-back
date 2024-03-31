@@ -1,0 +1,157 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Validator;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Post;
+use Illuminate\Http\Request;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
+use Facebook\Facebook;
+use Facebook\Exceptions\FacebookResponseException;
+use Facebook\Exceptions\FacebookSDKException;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+
+class PostSchedulerController extends Controller
+{
+    protected $providers = ["facebook"];
+
+    public function schedulePost(Request $request)
+    {
+        $pageId = $request->input('page_id');
+        $message = $request->input('message') ?? '';
+        $access_token = "EAADutQr9i3MBOxZCzeFhofvhPEB26xkspYAItSlZC6IqMZBC9KsDYj2yhInXIeCbHG9WQfSDQ230hYipyq2ivLRk61I31E33xLfgfbl3StpZB0ZCRrMeMSctKkUXPjmCClF3qW0aZC1oZBU1ORiAAz8ZAKYZBXtr00Y5VikiJ8SBSS83eeZA4T8j0wWq4BQcTxd4oZD";
+        $scheduledDateTime = $request->input('scheduled_datetime');
+        
+        // Validation des entrées
+        $validator = Validator::make($request->all(), [
+            'page_id' => 'required',
+            'message' => 'nullable',
+            'scheduled_datetime' =>  'required|date_format:Y-m-d H:i:s',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 400);
+        }
+
+        // Conversion de la date planifiée en timestamp
+        $scheduledDateTime = Carbon::parse($scheduledDateTime);
+
+        $now = Carbon::now();
+        $nowTime=$now->copy()->addHour();
+        
+
+        if($scheduledDateTime ->diffInMinutes($nowTime)<10|| $scheduledDateTime->diffInDays($nowTime) < 30 )
+        {   
+            // **Gestion des médias**
+            $post = new Post();
+            $mediaUploaded = false;
+
+            if ($request->hasFile('media_path')) {
+                $mediaFile = $request->file('media_path');
+
+                $ext = $mediaFile->getClientOriginalExtension();
+                $filename = time() . '.' . $ext;
+                $mediaFile->move('uploads/about/', $filename);
+
+                $post->media_path = 'uploads/about/' . $filename;
+                $mediaUploaded = true;
+
+                if ($mediaFile->getClientMimeType() == 'video/mp4') {
+                    $response = Http::attach(
+                        'source',
+                        fopen('uploads/about/' . $filename, 'r'),
+                        'file.' . $ext
+                    )->post("https://graph.facebook.com/v17.0/{$pageId}/videos", [
+                        'description' => $message,
+                        'access_token' => $access_token,
+                        'published' => false,
+                        'scheduled_publish_time' => strtotime($scheduledDateTime),
+                    ]);
+                } else {
+                    $response = Http::attach(
+                        'source',
+                        fopen('uploads/about/' . $filename, 'r'),
+                        'file.' . $ext
+                    )->post("https://graph.facebook.com/v17.0/{$pageId}/photos", [
+                        'message' => $message,
+                        'access_token' => $access_token,
+                        'published' => false,
+                        'scheduled_publish_time' => strtotime($scheduledDateTime),
+                    ]);
+                }
+
+                if ($response->failed()) {
+                    return response()->json(['error' => 'Échec de la publication sur la page Facebook'], 500);
+                }
+            }
+
+            if ($request->hasFile('media_paths')) {
+                $mediaPaths = $request->file('media_paths');
+                $uploadedFilesPaths = [];
+
+                foreach ($mediaPaths as $media) {
+                    $extension = $media->getClientOriginalExtension();
+                    $filename = time() . '_' . Str::random(5) . '.' . $extension;
+                    $media->move('uploads/', $filename);
+
+                    $uploadedFilesPaths[] = 'uploads/' . $filename;
+
+                    // Publication de chaque média sur Facebook
+                    $response = Http::attach(
+                        'source',
+                        fopen('uploads/' . $filename, 'r'),
+                        $filename
+                    )->post("https://graph.facebook.com/v17.0/{$pageId}/photos", [
+                        'message' => $message,
+                        'access_token' => $access_token,
+                        'published' => false,
+                        'scheduled_publish_time' => $scheduledDateTime,
+                    ]);
+
+                    // Vérification des erreurs de requête pour chaque média
+                    if ($response->failed()) {
+                        return response()->json(['error' => 'Échec de la publication sur la page Facebook'], 500);
+                    }
+                }
+
+                $post->media_paths = json_encode($uploadedFilesPaths);
+                $mediaUploaded = true;
+            }
+
+            // **Publication de message uniquement**
+            if (!$mediaUploaded && !empty($message)) {
+                // Publication sur Facebook
+                $response = Http::post("https://graph.facebook.com/v17.0/{$pageId}/feed", [
+                    'message' => $message,
+                    'access_token' => $access_token,
+                    'published' => false,
+                    'scheduled_publish_time' => $scheduledDateTime,
+                ]);
+
+                // Vérification des erreurs de requête
+                if ($response->failed()) {
+                    // Gérer l'erreur de requête
+                    return response()->json(['error' => 'Échec de la publication sur la page Facebook'], 500);
+                }
+            }
+
+            // **Enregistrement du post dans la base de données**
+
+            $post->page_id = $pageId;
+            $post->message = $message;
+            $post->scheduledDateTime = $scheduledDateTime;
+            $post->access_token = $access_token;
+            $post->Programming_options = 'Programmée';
+            $post->save();
+            
+            $msg = "Publication programmée avec succès pour la date $scheduledDateTime";
+            return response()->json(['message' =>   $msg ]);
+        }
+        else{
+            return response()->json(['error' => 'La date de publication doit être comprise entre 10 minutes et 30 jours après la date actuelle'], 400);
+        }       
+    }
+}
