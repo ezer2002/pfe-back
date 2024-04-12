@@ -6,6 +6,7 @@ use App\Http\Controllers\AiController;
 use App\Http\Controllers\SocialiteController;
 use App\Http\Controllers\PostSchedulerController;
 use App\Http\Controllers\DraftController;
+use App\Http\Controllers\SpeechToTextController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +29,10 @@ Route::view('/', 'profile_generators.create');
 
 Route::post('/generate-profile', [AiController::class,'index']);
 
+Route::post('/graph-interaction',[SocialiteController::class,'handleGraphInteraction']);
+
 Route::post('/schedule-post',[PostSchedulerController::class,'schedulePost']);
 
-Route::post('/save-post',[DraftController::class,'saveDraft']); 
+Route::post('/save-post',[DraftController::class,'saveDraft']);
+
+Route::post('/transcribe-audio', [SpeechToTextController::class, 'transcribe']);

@@ -140,4 +140,3 @@ class SocialiteController extends Controller
         return response()->json(['message' => 'Publié sur la page Facebook et enregistré dans la base de données',]);
     }
 }    
-    

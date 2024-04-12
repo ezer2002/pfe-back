@@ -25,6 +25,64 @@
                     <button type="submit" class="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-5 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Générer 🚀</button>
                 </div>
             </form>
+
+            <button id="recordButton">Enregistrer</button>
+<p id="status"></p>
+
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+document.getElementById('recordButton').addEventListener('click', function() {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        document.getElementById('recordButton').textContent = 'Enregistrer';
+    } else {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+                audioChunks = [];
+                document.getElementById('status').textContent = 'Enregistrement en cours...';
+                document.getElementById('recordButton').textContent = 'Arrêter';
+                
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    document.getElementById('status').textContent = 'Enregistrement terminé.';
+                    sendAudioToServer();
+                };
+            })
+            .catch(error => {
+                console.error("Erreur d'accès aux dispositifs média.", error);
+            });
+    }
+});
+
+function sendAudioToServer() {
+    const audioBlob = new Blob(audioChunks, { 'type' : 'audio/wav' });
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.wav');
+
+    fetch('{{ url('transcribe-audio') }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('status').textContent = 'Transcription: ' + data.transcription;
+    })
+    .catch(error => {
+        console.error("Erreur lors de l'envoi des données audio.", error);
+        document.getElementById('status').textContent = 'Une erreur est survenue.';
+    });
+}
+</script>
         </div>
 
         @isset($profile)
