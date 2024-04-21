@@ -13,9 +13,10 @@ return new class extends Migration
     {
         Schema::create('posts', function (Blueprint $table) {
             $table->id();
+            $table->string('social_id')->nullable();
             $table->string('page_id'); 
             $table->text('message');
-            $table->string('media_path')->nullable();
+            $table->string('media_path', 1000)->nullable();
             $table->json('media_paths')->nullable();
             $table->string('post_id')->nullable(); 
             $table->string('access_token')->nullable();

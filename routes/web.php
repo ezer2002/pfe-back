@@ -7,6 +7,7 @@ use App\Http\Controllers\SocialiteController;
 use App\Http\Controllers\PostSchedulerController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\SpeechToTextController;
+use App\Http\Controllers\CalendarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,5 +35,7 @@ Route::post('/graph-interaction',[SocialiteController::class,'handleGraphInterac
 Route::post('/schedule-post',[PostSchedulerController::class,'schedulePost']);
 
 Route::post('/save-post',[DraftController::class,'saveDraft']);
+
+Route::get('/events', [CalendarController::class, 'getEvents']);
 
 Route::post('/transcribe-audio', [SpeechToTextController::class, 'transcribe']);

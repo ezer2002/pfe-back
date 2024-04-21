@@ -25,7 +25,7 @@ class SocialiteController extends Controller
         // Récupération des données de la requête
         $pageId = $request->input('page_id');
         $message = $request->input('message') ?? '';
-        $access_token = "EAADutQr9i3MBOxZCzeFhofvhPEB26xkspYAItSlZC6IqMZBC9KsDYj2yhInXIeCbHG9WQfSDQ230hYipyq2ivLRk61I31E33xLfgfbl3StpZB0ZCRrMeMSctKkUXPjmCClF3qW0aZC1oZBU1ORiAAz8ZAKYZBXtr00Y5VikiJ8SBSS83eeZA4T8j0wWq4BQcTxd4oZD";
+        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
         $Programming_options = 'Publier';
         
         $post = new Post();
@@ -60,7 +60,8 @@ class SocialiteController extends Controller
                 )->post("https://graph.facebook.com/v17.0/{$pageId}/photos", [
                     'message' => $message,
                     'access_token' => $access_token,
-                ]);
+                ]); 
+                //return msg
 
                 if ($response->failed()) {
                     return response()->json(['error' => 'Failed to publish photo on Facebook'], 500);
@@ -131,12 +132,20 @@ class SocialiteController extends Controller
             }
         }
         
+        // Extraction du social_id du post publié
+        $postData = $response->json();
+        $socialId = $postData['id'];
+
+        $post->social_id = $socialId;
         $post->page_id = $pageId;
         $post->message = $message;
         $post->access_token = $access_token;
         $post->Programming_options = $Programming_options;
         $post->save();
         // Réponse JSON
-        return response()->json(['message' => 'Publié sur la page Facebook et enregistré dans la base de données',]);
+        //return response()->json(['message' => 'Publié sur la page Facebook et enregistré dans la base de données',]);
+       
+        // Retourner le social_id comme réponse JSON
+        return response()->json(['social_id' => $socialId]);
     }
 }    

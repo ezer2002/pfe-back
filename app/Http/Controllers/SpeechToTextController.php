@@ -87,27 +87,29 @@ class SpeechToTextController extends Controller
             Storage::disk('local')->delete($storagePath);
         }
   }
-  public function audioTranscribe(Request $request, $type = null){
-
+  /*public function audioTranscribe(Request $request, $type = null){
+        
     $audioFile = $request->file('audio_file');
     $filename = $audioFile->store('audio_files');
-
+    $filepath = Storage::path($filename);
+    
     if(!$type){
-        $result =   OpenAI::client(config('openai.api-key'))->transcribe([
+        $result = OpenAI::client(config('openai.api-key'))->files()->transcribe([
             'model' => 'whisper-1',
             'file' => fopen($filepath, 'r'),
             'response_format' => 'text', // verbose-json, srt, text
         ]);
     }else{
-        $result = OpenAI::audio()->translate([
+        $result = OpenAI::client(config('openai.api-key'))->files()->translate([
             'model' => 'whisper-1',
             'file' => fopen($filepath, 'r'),
         ]);
     }
 
-    echo 'TRANSCRIBE :' .$result->text.PHP_EOL;
-
-    return $result->text;
-
-}
+    echo 'TRANSCRIBE : ' . $result->text . PHP_EOL;
+    
+    return response()->json([
+        'transcription' => $result->text
+    ], 200);
+}*/
 }
