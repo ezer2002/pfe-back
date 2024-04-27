@@ -18,7 +18,6 @@ return new class extends Migration
             $table->text('message');
             $table->string('media_path', 1000)->nullable();
             $table->json('media_paths')->nullable();
-            $table->string('post_id')->nullable(); 
             $table->string('access_token')->nullable();
             $table->string('Programming_options')->default('Publier');
             $table->dateTime('scheduledDateTime')->nullable();

@@ -8,6 +8,7 @@ use App\Http\Controllers\PostSchedulerController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\SpeechToTextController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\PostModificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,10 +34,18 @@ Route::post('/schedule-post',[PostSchedulerController::class,'schedulePost']);
 Route::post('/save-post',[DraftController::class,'saveDraft']);
 
 Route::get('/events', [CalendarController::class, 'getEvents']);
-//fetchAndSavePosts
-Route::get('/-metabusiness-suite', [CalendarController::class, 'fetchMetaBusinessSuitePosts']);
 
-//Route::get('/meta-business', [CalendarController::class, 'fetchScheduledPosts']);
 Route::get('/meta-business', [CalendarController::class, 'fetchPostsFromMeta']);
 
-Route::post('/transcribe-audio', [SpeechToTextController::class, 'transcribe']);
+Route::post('/modify-post',[PostModificationController::class,'modifyPost']);
+
+
+/*//fetchAndSavePosts
+Route::get('/-metabusiness-suite', [CalendarController::class, 'fetchMetaBusinessSuitePosts']);*/
+
+//Route::get('/meta-business', [CalendarController::class, 'fetchScheduledPosts']);
+
+
+//Route::post('/transcribe-audio', [SpeechToTextController::class, 'transcribe']);
+
+//fetchPostsFromMeta*/

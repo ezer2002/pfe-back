@@ -90,6 +90,7 @@ class CalendarController extends Controller
             $publishedPosts = $publishedResponse->json()['data'];
 
             foreach ($publishedPosts as $postData) {
+                // Traitement des publications déjà publiées
                 $socialId = $postData['id'];
                 $message = isset($postData['message']) ? $postData['message'] : '';
                 $mediaPath = null;
@@ -122,50 +123,61 @@ class CalendarController extends Controller
         }
 
         // Récupération des publications programmées
-        $scheduledUrl = "https://graph.facebook.com/{$pageId}/scheduled_posts";
-        $scheduledUrl .= "?access_token={$access_token}&fields=id,message,scheduled_publish_time,attachments{media}";
+        $scheduledUrl = "https://graph.facebook.com/{$pageId}/scheduled_posts?access_token={$access_token}&fields=id,message,scheduled_publish_time,attachments{media}";
+        $scheduledPosts = $this->fetchScheduledPosts($pageId, $access_token);
 
         $scheduledResponse = Http::get($scheduledUrl);
 
-        if ($scheduledResponse->successful()) {
-            $scheduledPosts = $scheduledResponse->json()['data'];
-
-            foreach ($scheduledPosts as $scheduledPost) {
-                $socialId = $scheduledPost['id'];
-                $message = isset($scheduledPost['message']) ? $scheduledPost['message'] : '';
-                $mediaPath = null;
-
-                if (!empty($scheduledPost['attachments']['data'])) {
-                    $mediaItem = $scheduledPost['attachments']['data'][0]['media'];
-                    $mediaPath = $mediaItem['image']['src'] ?? ($mediaItem['video']['src'] ?? null);
-                }
-
-                $existingScheduledPost = Post::where('social_id', $socialId)->whereNull('created_at')->first();
-
-                if ($existingScheduledPost) {
-                    $existingScheduledPost->update([
-                        'message' => $message,
-                        'media_path' => $mediaPath,
-                        'scheduledDateTime' => Carbon::createFromTimestamp($scheduledPost['scheduled_publish_time']),
-                    ]);
-                } else {
-                    Post::create([
-                        'social_id' => $socialId,
-                        'page_id' => $pageId,
-                        'message' => $message,
-                        'media_path' => $mediaPath,
-                        'scheduledDateTime' => Carbon::createFromTimestamp($scheduledPost['scheduled_publish_time']),
-                        'access_token' => $access_token,
-                        'Programming_options' => 'Meta Business Suite_Programmer',
-                    ]);
-                }
+        foreach ($scheduledPosts as $scheduledPost) {
+            $socialId = $scheduledPost['id'];
+            $message = isset($scheduledPost['message']) ? $scheduledPost['message'] : '';
+            $mediaPath = null;
+        
+            if (!empty($scheduledPost['attachments']['data'])) {
+                $mediaItem = $scheduledPost['attachments']['data'][0]['media'];
+                $mediaPath = $mediaItem['image']['src'] ?? ($mediaItem['video']['src'] ?? null);
+            }
+        
+            $existingScheduledPost = Post::where('social_id', $socialId)->whereNull('created_at')->first();
+        
+            if ($existingScheduledPost) {
+                $existingScheduledPost->update([
+                    'message' => $message,
+                    'media_path' => $mediaPath,
+                    'scheduledDateTime' => Carbon::createFromTimestamp($scheduledPost['scheduled_publish_time']),
+                ]);
+            } else {
+                Post::create([
+                    'social_id' => $socialId,
+                    'page_id' => $pageId,
+                    'message' => $message,
+                    'media_path' => $mediaPath,
+                    'scheduledDateTime' => Carbon::createFromTimestamp($scheduledPost['scheduled_publish_time']),
+                    'access_token' => $access_token,
+                    'Programming_options' => 'Meta Business Suite_Programmer',
+                ]);
             }
         }
 
         return response()->json([
-            'message' => $scheduledUrl,
+            'message' => 'Publications récupérées avec succès.',
         ]);
+
     }
+
+    private function fetchScheduledPosts($pageId, $access_token)
+    {
+        $scheduledUrl = "https://graph.facebook.com/{$pageId}/scheduled_posts?access_token={$access_token}&fields=id,message,scheduled_publish_time,attachments{media}";
+        
+        $scheduledResponse = Http::get($scheduledUrl);
+
+        if ($scheduledResponse->successful()) {
+            return $scheduledResponse->json()['data'];
+        } else {
+            return [];
+        }
+    }
+
 
     /*public function fetchMetaBusinessSuitePosts()
     {

@@ -38,4 +38,6 @@ Route::post('/save-post',[DraftController::class,'saveDraft']);
 
 Route::get('/events', [CalendarController::class, 'getEvents']);
 
+Route::get('/meta-business', [CalendarController::class, 'fetchPostsFromMeta']);
+
 Route::post('/transcribe-audio', [SpeechToTextController::class, 'transcribe']);
