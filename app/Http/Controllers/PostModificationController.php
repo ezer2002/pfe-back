@@ -19,14 +19,13 @@ class PostModificationController extends Controller
 {
     public function modifyPost(Request $request)
     {
-        $pageId = $request->input('page_id');
-        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
-        
+        $access_token = "EAAFHMS35xfQBOwVE5tY4kd3FBawj7FSqTlBXwNV5kb5Jnt4h8VnLaN9ZCw15sDATxTPc4jC8p7D2EZBSRZCrfuOItJUdxSKt0ZBKA7oLS5T8NirPhJwnuxsZAWWVg61BADZBSSB2DXE2mcnyNk9agGPo3qqnlMjohFhbz5qZCk8PaNkVwm0RtgeZCNH986AweZAJXlAjFpYCH4OZAyda0me2GttZCtpnrPcRSKpMMNKPaEZD";
+
         // Validate the request
         $validator = Validator::make($request->all(), [
             'id' => 'required', // Local Post ID
-            'social_id' => 'required', // Facebook Post ID
-            'message' => 'required', // New message content
+            'page_id' => 'required',
+            'Programming_options' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -40,21 +39,48 @@ class PostModificationController extends Controller
             return response()->json(['error' => 'Post not found'], 404);
         }
 
-        // Update the post on Facebook
-        $response = Http::post("https://graph.facebook.com/v17.0/{$pageId}/{$request->input('social_id')}", [
-            'message' => $request->input('message'),
-            'access_token' => $post->access_token,
-        ]);
+        // Check the Programming_options for different actions
+        switch ($request->input('Programming_options')) {
+            case 'Brouillon':
+                // Process message modification
+                if ($request->has('message')) {
+                    $post->message = $request->input('message');
+                    $post->save();
+                }
 
-        if ($response->failed()) {
-            return response()->json(['error' => 'Failed to update post on Facebook'], 500);
+                // Process media_path update if a file is provided
+                if ($request->hasFile('media_path')) {
+                    $mediaFile = $request->file('media_path');
+                    $ext = $mediaFile->getClientOriginalExtension();
+                    $filename = time() . '.' . $ext;
+                    $mediaFile->move('uploads/', $filename);
+
+                    // Update the media path in the database
+                    $post->media_path = 'uploads/' . $filename;
+                    $post->save();
+                }
+
+                $post->page_id = $request->input('page_id');
+                $post->save();
+
+                return response()->json(['message' => 'Successfully edited post']);
+                break;
+
+            case 'publier':
+                
+                // Update the Programming_options and other fields accordingly
+                return response()->json(['message' => 'Successfully published post']);
+                break;
+
+            case 'programmée':
+                
+                // Update the Programming_options and other fields accordingly
+                return response()->json(['message' => 'Successfully scheduled post']);
+                break;
+
+            default:
+                return response()->json(['error' => 'Invalid request'], 400);
+                break;
         }
-
-        // Update the post in the local database
-        $post->message = $request->input('message');
-        $post->save();
-
-        // Return the updated post's social_id
-        return response()->json(['social_id' => $post->social_id]);
     }
 }

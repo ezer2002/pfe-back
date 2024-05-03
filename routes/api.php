@@ -35,10 +35,9 @@ Route::post('/save-post',[DraftController::class,'saveDraft']);
 
 Route::get('/events', [CalendarController::class, 'getEvents']);
 
-Route::get('/meta-business', [CalendarController::class, 'fetchPostsFromMeta']);
+Route::get('/meta-business', [CalendarController::class, 'fetchPostsFromMeta']);  
 
 Route::post('/modify-post',[PostModificationController::class,'modifyPost']);
-
 
 /*//fetchAndSavePosts
 Route::get('/-metabusiness-suite', [CalendarController::class, 'fetchMetaBusinessSuitePosts']);*/

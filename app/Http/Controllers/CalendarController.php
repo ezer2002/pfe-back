@@ -36,6 +36,7 @@ class CalendarController extends Controller
 
     public function getEvents()
     {
+        
         //$posts = Post::all();
         $posts = Post::select('id', 'page_id', 'Programming_options', 'created_at', 'scheduledDateTime')->get();
         
@@ -75,7 +76,7 @@ class CalendarController extends Controller
         return response()->json($events);
     }
 
-    public function fetchPostsFromMeta()
+   /*public function fetchPostsFromMeta()
     {
         $pageId = "115449061452354";
         $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
@@ -136,7 +137,7 @@ class CalendarController extends Controller
             if (!empty($scheduledPost['attachments']['data'])) {
                 $mediaItem = $scheduledPost['attachments']['data'][0]['media'];
                 $mediaPath = $mediaItem['image']['src'] ?? ($mediaItem['video']['src'] ?? null);
-            }
+            } 
         
             $existingScheduledPost = Post::where('social_id', $socialId)->whereNull('created_at')->first();
         
@@ -165,7 +166,7 @@ class CalendarController extends Controller
 
     }
 
-    private function fetchScheduledPosts($pageId, $access_token)
+    private function fetchScheduledPosts($pageId, $access_token)  
     {
         $scheduledUrl = "https://graph.facebook.com/{$pageId}/scheduled_posts?access_token={$access_token}&fields=id,message,scheduled_publish_time,attachments{media}";
         
@@ -176,7 +177,7 @@ class CalendarController extends Controller
         } else {
             return [];
         }
-    }
+    }*/
 
 
     /*public function fetchMetaBusinessSuitePosts()
@@ -460,4 +461,92 @@ class CalendarController extends Controller
 
         return response()->json(['error' => 'Failed to fetch posts from Meta Business Suite'], 500);
     }*/
+
+    //private $pageId = "115449061452354"; 
+    //private $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD"; 
+
+    public function fetchPostsFromMeta()
+    {   
+        $pageId = "115449061452354";
+        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD"; 
+        // Fetch both published and scheduled posts in a single request
+        $url = "https://graph.facebook.com/v17.0/{$pageId}/feed?fields=id,message,created_time,scheduled_publish_time,attachments{media}&access_token={$access_token}&is_published=false";
+
+        $response = Http::get($url);
+        
+
+        if ($response->successful()) {
+            $postsData = $response->json()['data'];
+            //dd($postsData);
+            foreach ($postsData as $postData) {
+                $socialId = $postData['id'];
+                $message = $postData['message'] ?? '';
+                $mediaPath = null;
+
+                if (!empty($postData['attachments']['data'])) {
+                    $mediaItem = $postData['attachments']['data'][0]['media'];
+                    $mediaPath = $mediaItem['image']['src'] ?? ($mediaItem['video']['src'] ?? null);
+                }
+
+                // Determine if the post is scheduled or published based on the existence of 'scheduled_publish_time'
+                $isScheduled = isset($postData['scheduled_publish_time']);
+                //dd($isScheduled);
+                $dateField = $isScheduled ? 'scheduledDateTime' : 'created_at';
+                $dateValue = $isScheduled ? Carbon::createFromTimestamp($postData['scheduled_publish_time']) : new Carbon($postData['created_time']);
+                $programmingOptions = $isScheduled ? 'Meta Business Suite_Programmer' : 'Meta Business Suite';
+
+                // Check for an existing post using 'social_id'
+                $existingPost = Post::where('social_id', $socialId)->first();
+
+                if ($existingPost)   {  
+                    // Update the existing post
+                    $existingPost->update([
+                        'message' => $message,
+                        'media_path' => $mediaPath,
+                        'access_token' => $access_token,
+                        'Programming_options' => $programmingOptions,
+                    ]);
+                    // Update the date fields based on post type
+                    if ($isScheduled)
+                      {
+                        $existingPost->scheduledDateTime = $dateValue;
+        
+                    } else {
+                        $existingPost->created_at = $dateValue;
+                    }
+                    
+                    $existingPost->save();
+                } else {
+                    // Create a new post record
+                    $newPost = new Post([
+                        'social_id' => $socialId,
+                        'page_id' => $pageId,
+                        'message' => $message,
+                        'media_path' => $mediaPath,
+                        'access_token' => $access_token,
+                        'Programming_options' => $programmingOptions,
+                    ]);
+                    // Set the date fields based on post type
+                    if ($isScheduled) {
+                       // return($isScheduled);
+                        $newPost->scheduledDateTime = $dateValue;
+                    } else {
+                        $newPost->created_at = $dateValue;
+                    }
+                    return($isScheduled);
+                    $newPost->save();
+                }
+            }
+
+            return response()->json([
+                'message' => 'Publications récupérées avec succès.',
+            ]);
+        } else {
+            return response()->json([
+                'error' => 'Une erreur s\'est produite lors de la récupération des publications.',
+                'details' => $response->body() // Include the body of the response for debugging
+            ], 500);
+        }
+    }
+
 }

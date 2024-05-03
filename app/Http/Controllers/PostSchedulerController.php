@@ -54,15 +54,15 @@ class PostSchedulerController extends Controller
 
                 $ext = $mediaFile->getClientOriginalExtension();
                 $filename = time() . '.' . $ext;
-                $mediaFile->move('uploads/about/', $filename);
+                $mediaFile->move('uploads/', $filename);
 
-                $post->media_path = 'uploads/about/' . $filename;
+                $post->media_path = 'uploads/' . $filename;
                 $mediaUploaded = true;
 
                 if ($mediaFile->getClientMimeType() == 'video/mp4') {
                     $response = Http::attach(
                         'source',
-                        fopen('uploads/about/' . $filename, 'r'),
+                        fopen('uploads/' . $filename, 'r'),
                         'file.' . $ext
                     )->post("https://graph.facebook.com/v17.0/{$pageId}/videos", [
                         'description' => $message,
@@ -73,7 +73,7 @@ class PostSchedulerController extends Controller
                 } else {
                     $response = Http::attach(
                         'source',
-                        fopen('uploads/about/' . $filename, 'r'),
+                        fopen('uploads/' . $filename, 'r'),
                         'file.' . $ext
                     )->post("https://graph.facebook.com/v17.0/{$pageId}/photos", [
                         'message' => $message,
@@ -86,6 +86,10 @@ class PostSchedulerController extends Controller
                 if ($response->failed()) {
                     return response()->json(['error' => 'Échec de la publication sur la page Facebook'], 500);
                 }
+                // Extraction du social_id du post publié
+                $postData = $response->json();
+                $socialId = $postData['id'];
+
             }
 
             if ($request->hasFile('media_paths')) {
@@ -136,15 +140,27 @@ class PostSchedulerController extends Controller
                     // Gérer l'erreur de requête
                     return response()->json(['error' => 'Échec de la publication sur la page Facebook'], 500);
                 }
+                // Extraction du social_id du post publié
+                $postData = $response->json();
+                $socialId = $postData['id'];
+
             }
-            
-            // Extraction du social_id du post publié
-            $postData = $response->json();
-            $socialId = $postData['id'];
 
             // **Enregistrement du post dans la base de données**
             $post->social_id = $socialId;
             $post->page_id = $pageId;
+            
+            $response = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
+
+            if ($response->failed()) {
+                // Gérer l'erreur si la requête échoue
+                $post->page_id = $pageId; // Affecter l'ID de la Page en cas d'erreur
+            } else {
+                $pageData = $response->json();
+                $pageName = $pageData['name'];
+                $post->page_name = $pageName;
+            }
+
             $post->message = $message;
             $post->scheduledDateTime = $scheduledDateTime;
             $post->access_token = $access_token;

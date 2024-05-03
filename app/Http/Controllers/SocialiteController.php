@@ -68,10 +68,66 @@ class SocialiteController extends Controller
                 }
             }
 
-
+            // Extraction du social_id du post publié
+            $postData = $response->json();
+            $socialId = $postData['id'];
         }
 
         if ($request->hasFile('media_paths')) {
+            // Traitement des médias pour l'album
+            $mediaPaths = [];
+            foreach ($request->file('media_paths') as $mediaFile) {
+                $ext = $mediaFile->getClientOriginalExtension();
+                $filename = time() . '_' . Str::random(5) . '.' . $ext;
+                $mediaFile->move('uploads/', $filename);
+                $mediaPaths[] = 'uploads/' . $filename;
+            }
+
+            // Création de l'album sur Facebook
+            $response = Http::post("https://graph.facebook.com/v17.0/{$pageId}/albums", [
+                'message' => $message, // Ajoutez un message si nécessaire
+                'access_token' => $access_token,
+            ]);
+
+            // Vérification des erreurs de requête
+            if ($response->failed()) {
+                // Extraire les détails de l'erreur
+                $errorDetails = $response->body();
+
+                // Journaliser l'erreur
+                Log::error('Erreur lors de la publication de l\'album sur Facebook: ' . $errorDetails);
+
+                // Retourner un message d'erreur détaillé
+                return response()->json(['error' => 'Échec de la publication de l\'album sur Facebook. Détails : ' . $errorDetails], 500);
+            }
+
+            // Extraction du social_id du post publié
+            $albumData = $response->json();
+            $socialId = $albumData['id'];
+
+            // Publication des photos dans l'album
+            foreach ($mediaPaths as $mediaPath) {
+                $response = Http::attach(
+                    'source',
+                    fopen($mediaPath, 'r'),
+                    'file.' . $ext
+                )->post("https://graph.facebook.com/v17.0/{$socialId}/photos", [
+                    'message' => '', // Ajoutez un message par photo si nécessaire
+                    'access_token' => $access_token,
+                ]);
+
+                // Vérification des erreurs de requête
+                if ($response->failed()) {
+                    // Gestion de l'erreur de publication des photos dans l'album
+                    return response()->json(['error' => 'Erreur lors de la publication des photos dans l\'album sur Facebook'], 500);
+                }
+            }
+
+            // Enregistrement des médias et du message dans la base de données
+            $post->media_paths = json_encode($mediaPaths);
+    
+            /*
+            //khidma li9dima 
             $mediaPaths = $request->file('media_paths');
             $uploadedFilesUrls = []; // Tableau d'URL des photos hébergées en ligne
             $albumCreated = false;
@@ -114,7 +170,7 @@ class SocialiteController extends Controller
                 }
             }
 
-            $post->media_paths = json_encode($uploadedFilesUrls);
+            $post->media_paths = json_encode($uploadedFilesUrls);*/
         }
 
         // Publication de message seulement si aucun média n'est présent
@@ -130,15 +186,25 @@ class SocialiteController extends Controller
                 // Gérer l'erreur de requête
                 return response()->json(['error' => 'Échec de la publication sur la page Facebook'], 500);
             }
+            // Extraction du social_id du post publié
+            $postData = $response->json();
+            $socialId = $postData['id'];
         }
         
-        // Extraction du social_id du post publié
-        $postData = $response->json();
-        $socialId = $postData['id'];
-
+        // **Enregistrement du post dans la base de données**
         $post->social_id = $socialId;
-        //$post->post_id = "4";
         $post->page_id = $pageId;
+
+        $response = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
+
+        if ($response->failed()) {
+            // Gérer l'erreur si la requête échoue
+            $post->page_id = $pageId; // Affecter l'ID de la Page en cas d'erreur
+        } else {
+            $pageData = $response->json();
+            $pageName = $pageData['name'];
+            $post->page_name = $pageName;
+        }
         $post->message = $message;
         $post->access_token = $access_token;
         $post->Programming_options = $Programming_options;
@@ -148,6 +214,8 @@ class SocialiteController extends Controller
        
         // Retourner le social_id comme réponse JSON
         return response()->json(['social_id' => $socialId]);
+        // Réponse JSON
+        //return response()->json(['message' => 'Album publié sur la page Facebook et enregistré dans la base de données']);
     }
 }    
 
