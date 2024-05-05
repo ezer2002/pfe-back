@@ -28,24 +28,27 @@ class DraftController extends Controller
             $mediaFile = $request->file('media_path');
             $ext = $mediaFile->getClientOriginalExtension();
             $filename = time() . '.' . $ext;
-            $mediaFile->move('uploads/about/', $filename);
-            $post->media_path = 'uploads/about/' . $filename;
+            $mediaFile->move('uploads/', $filename);
+            $post->media_path = 'uploads/' . $filename;
         }
 
         if ($request->hasFile('media_paths')) {
-            $mediaPaths = $request->file('media_paths');
-
-            $uploadedFilesPaths = [];
-
-            foreach ($mediaPaths as $media) {
+            $mediaPaths = [];
+            $mediaFiles = $request->file('media_paths');
+        
+            foreach ($mediaFiles as $media) {
                 $extension = $media->getClientOriginalExtension();
-                $filename = time() . '_' . Str::random(5) . '.' . $extension;
+                $filename = time() . '.' . $extension;
                 $media->move('uploads/', $filename);
-
-                $uploadedFilesPaths[] = 'uploads/' . $filename;
+        
+                $uploadedFilePath = 'uploads/' . $filename;
+                $mediaPaths[] = $uploadedFilePath;
             }
-
-            $post->media_paths = json_encode($uploadedFilesPaths);
+        
+            // Assurez-vous que $mediaPaths contient les chemins des fichiers correctement enregistrés
+            $post->media_paths = json_encode($mediaPaths);
+        
+            return response()->json(['media_paths' => $mediaPaths]);
         }
 
         // Création et sauvegarde du post en tant que brouillon

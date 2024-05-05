@@ -9,6 +9,7 @@ use App\Http\Controllers\DraftController;
 use App\Http\Controllers\SpeechToTextController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\PostModificationController;
+use App\Http\Controllers\PostDeleteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +39,8 @@ Route::get('/events', [CalendarController::class, 'getEvents']);
 Route::get('/meta-business', [CalendarController::class, 'fetchPostsFromMeta']);  
 
 Route::post('/modify-post',[PostModificationController::class,'modifyPost']);
+
+Route::post('/delete-post',[PostDeleteController::class,'deletePost']);
 
 /*//fetchAndSavePosts
 Route::get('/-metabusiness-suite', [CalendarController::class, 'fetchMetaBusinessSuitePosts']);*/

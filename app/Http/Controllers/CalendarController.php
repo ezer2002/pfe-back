@@ -477,7 +477,6 @@ class CalendarController extends Controller
 
         if ($response->successful()) {
             $postsData = $response->json()['data'];
-            //dd($postsData);
             foreach ($postsData as $postData) {
                 $socialId = $postData['id'];
                 $message = $postData['message'] ?? '';
@@ -497,6 +496,16 @@ class CalendarController extends Controller
 
                 // Check for an existing post using 'social_id'
                 $existingPost = Post::where('social_id', $socialId)->first();
+                
+                // Récupérer le nom de la page à partir de l'ID de la page
+                $responsePage = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
+
+                if ($responsePage->successful()) {
+                    $pageData = $responsePage->json();
+                    $pageName = $pageData['name'];
+                } else {
+                    $pageName = 'Innovation page'; 
+                }
 
                 if ($existingPost)   {  
                     // Update the existing post
@@ -505,6 +514,7 @@ class CalendarController extends Controller
                         'media_path' => $mediaPath,
                         'access_token' => $access_token,
                         'Programming_options' => $programmingOptions,
+                        'page_name' => $pageName,
                     ]);
                     // Update the date fields based on post type
                     if ($isScheduled)
@@ -521,6 +531,7 @@ class CalendarController extends Controller
                     $newPost = new Post([
                         'social_id' => $socialId,
                         'page_id' => $pageId,
+                        'page_name' => $pageName,
                         'message' => $message,
                         'media_path' => $mediaPath,
                         'access_token' => $access_token,
@@ -533,7 +544,6 @@ class CalendarController extends Controller
                     } else {
                         $newPost->created_at = $dateValue;
                     }
-                    return($isScheduled);
                     $newPost->save();
                 }
             }
@@ -547,6 +557,8 @@ class CalendarController extends Controller
                 'details' => $response->body() // Include the body of the response for debugging
             ], 500);
         }
+
+
     }
 
 }

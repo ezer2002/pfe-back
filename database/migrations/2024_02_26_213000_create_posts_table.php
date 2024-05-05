@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('social_id')->nullable();
             $table->string('page_name'); 
             $table->string('page_id'); 
-            $table->text('message');
+            $table->text('message')->nullable();
             $table->string('media_path', 1000)->nullable();
             $table->json('media_paths')->nullable();
             $table->string('access_token')->nullable();
