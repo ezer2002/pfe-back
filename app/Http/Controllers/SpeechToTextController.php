@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use \OpenAI;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Storage;
 
 class SpeechToTextController extends Controller
 {
@@ -24,7 +24,7 @@ class SpeechToTextController extends Controller
       // Save the audio file
       $audioFile = $request->file('audio');
       $storedFilename = time() . '_' . $audioFile->getClientOriginalName();
-      $storagePath = Storage::disk('local')->putFileAs('audio', $audioFile, $storedFilename);
+      $storagePath = $audioFile->storeAs('audio', $storedFilename);
 
       /// Instantiate Guzzle HTTP client
       $client = new Client();
@@ -71,16 +71,13 @@ class SpeechToTextController extends Controller
           ], 200);
         } else {
           // Handle cases where the 'text' field is not set in the response
-          \Log::error('Transcription text not found in the response');
           return response()->json(['error' => 'Transcription text not found'], 500);
         }
         } catch (\GuzzleHttp\Exception\GuzzleException $e) {
           // Handle Guzzle-specific exceptions
-          \Log::error($e->getMessage());
           return response()->json(['error' => 'Transcription failed with GuzzleException'], 500);
         } catch (\Exception $e) {
             // Handle general exceptions
-            \Log::error($e->getMessage());
             return response()->json(['error' => 'Transcription failed'], 500);
         } finally {
             // Ensure the temporary file is deleted even if there's an exception
@@ -88,11 +85,11 @@ class SpeechToTextController extends Controller
         }
   }
   /*public function audioTranscribe(Request $request, $type = null){
-        
+
     $audioFile = $request->file('audio_file');
     $filename = $audioFile->store('audio_files');
     $filepath = Storage::path($filename);
-    
+
     if(!$type){
         $result = OpenAI::client(config('openai.api-key'))->files()->transcribe([
             'model' => 'whisper-1',
@@ -107,7 +104,7 @@ class SpeechToTextController extends Controller
     }
 
     echo 'TRANSCRIBE : ' . $result->text . PHP_EOL;
-    
+
     return response()->json([
         'transcription' => $result->text
     ], 200);

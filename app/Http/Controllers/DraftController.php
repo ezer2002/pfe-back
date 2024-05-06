@@ -19,9 +19,10 @@ class DraftController extends Controller
     {
         // Récupération des données de la requête
         $pageId = $request->input('page_id');
+        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
         $message = $request->input('message') ?? '';
-        $Programming_options = 'Brouillons'; 
-        
+        $Programming_options = 'Brouillons';
+
         $post = new Post();
         if ($request->hasFile('media_path')) {
             $mediaFile = $request->file('media_path');
@@ -49,6 +50,19 @@ class DraftController extends Controller
 
         // Création et sauvegarde du post en tant que brouillon
         $post->page_id = $pageId;
+
+        $response = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
+
+        if ($response->failed()) {
+            // Gérer l'erreur si la requête échoue
+            $post->page_id = $pageId; // Affecter l'ID de la Page en cas d'erreur
+        } else {
+            $pageData = $response->json();
+            $pageName = $pageData['name'];
+            $post->page_name = $pageName;
+        }
+
+        $post->access_token = $access_token;
         $post->message = $message;
         $post->Programming_options = $Programming_options;
         $post->save();

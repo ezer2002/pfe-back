@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Post extends Model
 {
-    protected $table = 'posts'; 
+    protected $table = 'posts';
 
-    protected $fillable = ['page_id','social_id', 'message', 'media_path','media_paths', 'access_token', 'Programming_options', 'scheduledDateTime'];
+    protected $fillable = ['social_id','page_name','page_id', 'message', 'media_path','media_paths', 'access_token', 'Programming_options', 'scheduledDateTime'];
 
     protected $casts = [
-        'media_paths' => 'json', // Convertir le champ media_paths en JSON lors de la lecture/écriture   
+        'media_paths' => 'json', // Convertir le champ media_paths en JSON lors de la lecture/écriture
     ];
 }
