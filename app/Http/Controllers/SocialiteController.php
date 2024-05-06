@@ -23,7 +23,7 @@ class SocialiteController extends Controller
         $pageId = $request->input('page_id');
         $message = $request->input('message')  ??'';
         $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
-        $Programming_options = 'Publier';
+        $Programming_options = 'published';
         
         $post = new Post();
         if ($request->hasFile('media_path')) {

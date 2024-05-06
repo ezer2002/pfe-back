@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('media_path', 1000)->nullable();
             $table->json('media_paths')->nullable();
             $table->string('access_token')->nullable();
-            $table->string('Programming_options')->default('Publier');
+            $table->string('Programming_options')->default('published');
             $table->dateTime('scheduledDateTime')->nullable();
             $table->timestamps();
         });

@@ -22,9 +22,9 @@ class CalendarController extends Controller
             $event = [
                 'id' => $post->id,
                 'title' => $post->page_id,
-                'start' => $post->Programming_options === 'Publier' ? $post->created_at : ($post->Programming_options === 'Programmée' ? $post->scheduledDateTime : $post->created_at), 
-                'end' => $post->Programming_options === 'Publier' ? $post->created_at : ($post->Programming_options === 'Programmée' ? $post->scheduledDateTime : $post->created_at),
-                'color' => $post->Programming_options === 'Publier' ? 'green' : ($post->Programming_options === 'Programmée' ? 'orange' : 'blue'),
+                'start' => $post->Programming_options === 'published' ? $post->created_at : ($post->Programming_options === 'Programmée' ? $post->scheduledDateTime : $post->created_at), 
+                'end' => $post->Programming_options === 'published' ? $post->created_at : ($post->Programming_options === 'Programmée' ? $post->scheduledDateTime : $post->created_at),
+                'color' => $post->Programming_options === 'published' ? 'green' : ($post->Programming_options === 'Programmée' ? 'orange' : 'blue'),
                 'subtitle' => $post->Programming_options,
             ];
             
@@ -44,10 +44,10 @@ class CalendarController extends Controller
             $event = [
                 'id' => $post->id,
                 'title' => $post->page_id,
-                'start' => $post->Programming_options === 'Publier' ? $post->created_at : ($post->Programming_options === 'Programmée' ? $post->scheduledDateTime : $post->created_at),
-                'end' => $post->Programming_options === 'Publier' ? $post->created_at : ($post->Programming_options === 'Programmée' ? $post->scheduledDateTime : $post->created_at),
-                'color' => $post->Programming_options === 'Publier' ? 'green' 
-                        : ($post->Programming_options === 'Programmée' ? 'orange' 
+                'start' => $post->Programming_options === 'published' ? $post->created_at : ($post->Programming_options === 'programmed' ? $post->scheduledDateTime : $post->created_at),
+                'end' => $post->Programming_options === 'published' ? $post->created_at : ($post->Programming_options === 'programmed' ? $post->scheduledDateTime : $post->created_at),
+                'color' => $post->Programming_options === 'published' ? 'green' 
+                        : ($post->Programming_options === 'programmed' ? 'orange' 
                         : ($post->Programming_options === 'Meta Business Suite' ? 'purple'
                         : ($post->Programming_options === 'Meta Business Suite_Programmer' ? 'yellow' : 'blue'))),
                 'subtitle' => $post->Programming_options,
@@ -57,8 +57,8 @@ class CalendarController extends Controller
         });
         /*$events = $posts->map(function($post) {
             $programmingOption = $post->Programming_options;
-            $isPublished = $programmingOption === 'Publier';
-            $isScheduled = $programmingOption === 'Programmée';
+            $isPublished = $programmingOption === 'published';
+            $isScheduled = $programmingOption === 'programmed';
             
             $event = [
                 'id' => $post->id,
@@ -465,7 +465,7 @@ class CalendarController extends Controller
     //private $pageId = "115449061452354"; 
     //private $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD"; 
 
-    public function fetchPostsFromMeta()
+    /*public function fetchPostsFromMeta()
     {   
         $pageId = "115449061452354";
         $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD"; 
@@ -559,6 +559,79 @@ class CalendarController extends Controller
         }
 
 
+    }*/
+
+    public function fetchPostsFromMeta()
+    {
+        $pageId = "115449061452354";
+        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD"; 
+        $url = "https://graph.facebook.com/v17.0/{$pageId}/feed?fields=id,message,created_time,attachments{media}&access_token={$access_token}&is_published=false";
+        $response = Http::get($url);
+
+        if ($response->successful()) {
+            $postsData = $response->json()['data'];
+
+            foreach ($postsData as $postData) {
+                $socialId = $postData['id'];
+                $message = $postData['message'] ?? '';
+                $mediaPath = null;
+
+                if (!empty($postData['attachments']['data'])) {
+                    $mediaItem = $postData['attachments']['data'][0]['media'];
+                    $mediaPath = $mediaItem['image']['src'] ?? ($mediaItem['video']['src'] ?? null);
+                }
+
+                $programmingOptions = 'published';
+
+                $existingPost = Post::where('social_id', $socialId)->first();
+
+                // Récupérer le nom de la page à partir de l'ID de la page
+                $responsePage = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
+
+                if ($responsePage->successful()) {
+                    $pageData = $responsePage->json();
+                    $pageName = $pageData['name'];
+                } else {
+                    $pageName = 'Innovation page'; 
+                }
+
+                if ($existingPost)   {  
+                    // Update the existing post
+                    $existingPost->update([
+                        'message' => $message,
+                        'media_path' => $mediaPath,
+                        'access_token' => $access_token,
+                        'Programming_options' => $programmingOptions,
+                        'page_name' => $pageName,
+                    ]);
+                    $existingPost->created_at = new Carbon($postData['created_time']);
+                    
+                    $existingPost->save();
+                } else {
+                    // Create a new post record
+                    $newPost = new Post([
+                        'social_id' => $socialId,
+                        'page_id' => $pageId,
+                        'page_name' => $pageName,
+                        'message' => $message,
+                        'media_path' => $mediaPath,
+                        'access_token' => $access_token,
+                        'Programming_options' => $programmingOptions,
+                    ]);
+                    $newPost->created_at = new Carbon($postData['created_time']);
+                    $newPost->save();
+                }
+            }
+
+            return response()->json([
+                'message' => 'Publications récupérées avec succès.',
+            ]);
+        } else {
+            return response()->json([
+                'error' => 'Une erreur s\'est produite lors de la récupération des publications.',
+                'details' => $response->body()
+            ], 500);
+        }
     }
 
 }

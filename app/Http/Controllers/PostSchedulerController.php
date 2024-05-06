@@ -164,7 +164,7 @@ class PostSchedulerController extends Controller
                 $post->message = $message;
                 $post->scheduledDateTime = $scheduledDateTime;
                 $post->access_token = $access_token;
-                $post->Programming_options = 'Programmée';
+                $post->Programming_options = 'programmed';
                 $post->save();
                 
                 /*$msg = "Publication programmée avec succès pour la date $scheduledDateTime";

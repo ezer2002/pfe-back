@@ -33,7 +33,7 @@ class PostDeleteController extends Controller
         // Récupérez le post à supprimer
         $post = Post::find($request->input('id'));
 
-        if ($post->Programming_options === 'Brouillons') {
+        if ($post->Programming_options === 'saved as draft') {
             $post->delete();
             
             return response()->json(['message' => 'Post deleted successfully']);
