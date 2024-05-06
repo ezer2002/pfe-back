@@ -20,6 +20,7 @@ class DraftController extends Controller
         // Récupération des données de la requête
         $pageId = $request->input('page_id');
         $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
+        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
         $message = $request->input('message') ?? '';
         $Programming_options = 'Brouillons';
 
@@ -28,8 +29,8 @@ class DraftController extends Controller
             $mediaFile = $request->file('media_path');
             $ext = $mediaFile->getClientOriginalExtension();
             $filename = time() . '.' . $ext;
-            $mediaFile->move('uploads/about/', $filename);
-            $post->media_path = 'uploads/about/' . $filename;
+            $mediaFile->move('uploads/', $filename);
+            $post->media_path = 'uploads/' . $filename;
         }
 
         if ($request->hasFile('media_paths')) {
@@ -39,7 +40,7 @@ class DraftController extends Controller
 
             foreach ($mediaPaths as $media) {
                 $extension = $media->getClientOriginalExtension();
-                $filename = time() . '_' . Str::random(5) . '.' . $extension;
+                $filename = time() . '.' . $extension;
                 $media->move('uploads/', $filename);
 
                 $uploadedFilesPaths[] = 'uploads/' . $filename;

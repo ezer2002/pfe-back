@@ -9,22 +9,19 @@ use Illuminate\Http\Request;
 //use Socialite;
 use App\User;
 use Illuminate\Support\Facades\Http;
-use Facebook\Facebook;
-use Facebook\Exceptions\FacebookResponseException;
-use Facebook\Exceptions\FacebookSDKException;
+//use Facebook\Facebook;
+//use Facebook\Exceptions\FacebookResponseException;
+//use Facebook\Exceptions\FacebookSDKException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
 class SocialiteController extends Controller
 {
-    // Les tableaux des providers autorisés
-    protected $providers = ["facebook"];
-
     public function handleGraphInteraction(Request $request)
     {
         // Récupération des données de la requête
         $pageId = $request->input('page_id');
-        $message = $request->input('message') ?? '';
+        $message = $request->input('message')  ??'';
         $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
         $Programming_options = 'Publier';
 
@@ -212,7 +209,6 @@ class SocialiteController extends Controller
             $postData = $response->json();
             $socialId = $postData['id'];
         }
-
         // **Enregistrement du post dans la base de données**
         $post->social_id = $socialId;
         $post->page_id = $pageId;

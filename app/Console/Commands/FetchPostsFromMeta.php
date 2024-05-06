@@ -22,7 +22,6 @@ class FetchPostsFromMeta extends Command
      * @var string
      */
     protected $description = 'Retrieve posts from Meta automatically every minute.';
-
     /**
      * Create a new command instance.
      *

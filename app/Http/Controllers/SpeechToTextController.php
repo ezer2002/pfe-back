@@ -109,4 +109,6 @@ class SpeechToTextController extends Controller
         'transcription' => $result->text
     ], 200);
 }*/
+
+
 }
