@@ -24,6 +24,12 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/save-draft', [DraftController::class, 'saveDraft']);
+    
+});
+
 Route::get('/', [AiController::class,'index']);
 
 Route::view('/', 'profile_generators.create');
@@ -34,10 +40,15 @@ Route::post('/graph-interaction',[SocialiteController::class,'handleGraphInterac
 
 Route::post('/schedule-post',[PostSchedulerController::class,'schedulePost']);
 
-Route::post('/save-post',[DraftController::class,'saveDraft']);
 
 Route::get('/events', [CalendarController::class, 'getEvents']);
 
 Route::get('/meta-business', [CalendarController::class, 'fetchPostsFromMeta']);
 
 Route::post('/transcribe-audio', [SpeechToTextController::class, 'transcribe']);
+//Auth::routes();
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+Route::post('/register',[RegisterController::class,'register']);
+Route::post('/login',[LoginController::class,'login']);

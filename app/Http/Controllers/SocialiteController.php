@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Http;
 //use Facebook\Exceptions\FacebookSDKException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class SocialiteController extends Controller
 {
@@ -191,6 +192,7 @@ class SocialiteController extends Controller
         $post->message = $message;
         $post->access_token = $access_token;
         $post->Programming_options = $Programming_options;
+        $post->user_id = Auth::user()->id; 
         $post->save();
         // Réponse JSON
         //return response()->json(['message' => 'Publié sur la page Facebook et enregistré dans la base de données',]);

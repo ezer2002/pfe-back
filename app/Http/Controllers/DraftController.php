@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Facebook\Facebook;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class DraftController extends Controller
 {
@@ -68,9 +69,12 @@ class DraftController extends Controller
         $post->access_token = $access_token;
         $post->message = $message;
         $post->Programming_options = $Programming_options;
+        $post->user_id = Auth::user()->id; 
+        
         $post->save();
 
         return response()->json(['message' => 'Post sauvegardé en tant que brouillon']);
     }
 
+    
 }

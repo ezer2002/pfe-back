@@ -15,6 +15,7 @@ use Facebook\Exceptions\FacebookSDKException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class PostModificationController extends Controller
 {
@@ -85,6 +86,8 @@ class PostModificationController extends Controller
             }
 
             $post->page_id = $request->input('page_id');
+            //$post->user_id = auth()->id(); 
+            
             $post->save();
 
             if ($request->input('Programming_options') === 'published') {
@@ -205,7 +208,7 @@ class PostModificationController extends Controller
                 
 
                 $post->social_id = $socialId;
-
+                
 
                 $post->save();
 
@@ -333,6 +336,7 @@ class PostModificationController extends Controller
                     // **Enregistrement du post dans la base de données**
                     $post->social_id = $socialId;
                     $post->scheduledDateTime = $scheduledDateTime;
+                    
                     $post->save();
                     
                     /*$msg = "Publication programmée avec succès pour la date $scheduledDateTime";

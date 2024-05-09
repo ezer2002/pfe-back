@@ -8,7 +8,7 @@ use Illuminate\View\View;
 
 class AiController extends Controller
 {
-    public function index( 
+    public function index(
         Request $request,
     ) {
         $openAIClient = OpenAI::client(config('openai.api-key'));

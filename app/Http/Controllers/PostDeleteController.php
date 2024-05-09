@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Validator;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Post;
 use Illuminate\Http\Request;
@@ -33,9 +33,10 @@ class PostDeleteController extends Controller
         // Récupérez le post à supprimer
         $post = Post::find($request->input('id'));
 
+        // Vérifiez si le post est un brouillon
         if ($post->Programming_options === 'saved as draft') {
             $post->delete();
-            
+
             return response()->json(['message' => 'Post deleted successfully']);
         } else {
             return response()->json(['error' => 'Post is not a brouillon, cannot delete'], 400);

@@ -13,6 +13,7 @@ use Facebook\Exceptions\FacebookResponseException;
 use Facebook\Exceptions\FacebookSDKException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class PostSchedulerController extends Controller
 {
@@ -165,6 +166,7 @@ class PostSchedulerController extends Controller
                 $post->scheduledDateTime = $scheduledDateTime;
                 $post->access_token = $access_token;
                 $post->Programming_options = 'programmed';
+                $post->user_id = Auth::user()->id;  
                 $post->save();
                 
                 /*$msg = "Publication programmée avec succès pour la date $scheduledDateTime";
