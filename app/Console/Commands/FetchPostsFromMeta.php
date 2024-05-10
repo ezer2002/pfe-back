@@ -40,13 +40,13 @@ class FetchPostsFromMeta extends Command
         $controller = new CalendarController();
         $controller->fetchPostsFromMeta();
 
-        $scheduledPosts = Post::where('Programming_options', 'Programmée')
+        $scheduledPosts = Post::where('Programming_options', 'programmed')
                             ->where('scheduledDateTime', '<=', Carbon::now())
                             ->get();
 
         foreach ($scheduledPosts as $post) {
             // Mettre à jour le champ Programming_options du post en 'Publier'
-            $post->Programming_options = 'Publier';
+            $post->Programming_options = 'published';
             $post->save();
         }
 

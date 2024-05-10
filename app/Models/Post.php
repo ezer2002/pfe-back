@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+
 class Post extends Model
 {
     protected $table = 'posts';
@@ -14,4 +15,11 @@ class Post extends Model
     protected $casts = [
         'media_paths' => 'json', // Convertir le champ media_paths en JSON lors de la lecture/écriture
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    
 }

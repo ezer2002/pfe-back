@@ -11,6 +11,7 @@ use FacebookAds\Logger\CurlLogger;
 use FacebookAds\Object\AdAccount;
 use FacebookAds\Object\AdCreative;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class CalendarController extends Controller
 {
@@ -21,17 +22,20 @@ class CalendarController extends Controller
 
         //$posts = Post::all();
         // $posts = Post::select('id','page_name', 'page_id', 'Programming_options', 'created_at', 'scheduledDateTime')->get();
+
         $posts = Post::all();
+        /*$user = auth()->user();
+        $posts = $user->posts;*/
+        //$posts = Post::where('user_id', auth()->id())->get();
+
         $events = $posts->map(function($post) {
             $event = [
                 'id' => $post->id,
                 'title' => $post->page_name,
-                'start' => $post->Programming_options === 'Publier' ? $post->created_at : ($post->Programming_options === 'Programmée' ? $post->scheduledDateTime : $post->created_at),
-                'end' => $post->Programming_options === 'Publier' ? $post->created_at : ($post->Programming_options === 'Programmée' ? $post->scheduledDateTime : $post->created_at),
-                'color' => $post->Programming_options === 'Publier' ? 'green'
-                        : ($post->Programming_options === 'Programmée' ? 'orange'
-                        : ($post->Programming_options === 'Meta Business Suite' ? 'purple'
-                        : ($post->Programming_options === 'Meta Business Suite_Programmer' ? 'yellow' : 'blue'))),
+                'start' => $post->Programming_options === 'published' ? $post->created_at : ($post->Programming_options === 'programmed' ? $post->scheduledDateTime : $post->created_at),
+                'end' => $post->Programming_options === 'published' ? $post->created_at : ($post->Programming_options === 'programmed' ? $post->scheduledDateTime : $post->created_at),
+                'color' => $post->Programming_options === 'published' ? 'green'
+                        : ($post->Programming_options === 'programmed' ? 'orange' : 'blue'),
                 'subtitle' => $post->Programming_options,
             ];
 
@@ -42,20 +46,16 @@ class CalendarController extends Controller
         return response()->json(  $posts);
     }
 
-
-    public function fetchPostsFromMeta()
+public function fetchPostsFromMeta()
     {
         $pageId = "115449061452354";
-        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
-        // Fetch both published and scheduled posts in a single request
-        $url = "https://graph.facebook.com/v17.0/{$pageId}/feed?fields=id,message,created_time,scheduled_publish_time,attachments{media}&access_token={$access_token}&is_published=false";
-
+        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD"; 
+        $url = "https://graph.facebook.com/v17.0/{$pageId}/feed?fields=id,message,created_time,attachments{media}&access_token={$access_token}&is_published=false";
         $response = Http::get($url);
-
 
         if ($response->successful()) {
             $postsData = $response->json()['data'];
-            //dd($postsData);
+
             foreach ($postsData as $postData) {
                 $socialId = $postData['id'];
                 $message = $postData['message'] ?? '';
@@ -66,52 +66,46 @@ class CalendarController extends Controller
                     $mediaPath = $mediaItem['image']['src'] ?? ($mediaItem['video']['src'] ?? null);
                 }
 
-                // Determine if the post is scheduled or published based on the existence of 'scheduled_publish_time'
-                $isScheduled = isset($postData['scheduled_publish_time']);
-                //dd($isScheduled);
-                $dateField = $isScheduled ? 'scheduledDateTime' : 'created_at';
-                $dateValue = $isScheduled ? Carbon::createFromTimestamp($postData['scheduled_publish_time']) : new Carbon($postData['created_time']);
-                $programmingOptions = $isScheduled ? 'Meta Business Suite_Programmer' : 'Meta Business Suite';
+                $programmingOptions = 'published';
 
-                // Check for an existing post using 'social_id'
                 $existingPost = Post::where('social_id', $socialId)->first();
 
-                if ($existingPost)   {
+                // Récupérer le nom de la page à partir de l'ID de la page
+                $responsePage = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
+
+                if ($responsePage->successful()) {
+                    $pageData = $responsePage->json();
+                    $pageName = $pageData['name'];
+                } else {
+                    $pageName = 'Innovation page'; 
+                }
+
+                if ($existingPost)   {  
                     // Update the existing post
                     $existingPost->update([
                         'message' => $message,
                         'media_path' => $mediaPath,
                         'access_token' => $access_token,
                         'Programming_options' => $programmingOptions,
+                        'page_name' => $pageName,
                     ]);
-                    // Update the date fields based on post type
-                    if ($isScheduled)
-                      {
-                        $existingPost->scheduledDateTime = $dateValue;
+                    $existingPost->created_at = new Carbon($postData['created_time']);
 
-                    } else {
-                        $existingPost->created_at = $dateValue;
-                    }
-
+                    $existingPost->user_id = Auth::user()->id; 
                     $existingPost->save();
                 } else {
                     // Create a new post record
                     $newPost = new Post([
                         'social_id' => $socialId,
                         'page_id' => $pageId,
+                        'page_name' => $pageName,
                         'message' => $message,
                         'media_path' => $mediaPath,
                         'access_token' => $access_token,
                         'Programming_options' => $programmingOptions,
                     ]);
-                    // Set the date fields based on post type
-                    if ($isScheduled) {
-                       // return($isScheduled);
-                        $newPost->scheduledDateTime = $dateValue;
-                    } else {
-                        $newPost->created_at = $dateValue;
-                    }
-                    return($isScheduled);
+                    $newPost->created_at = new Carbon($postData['created_time']);
+                    $newPost->user_id = Auth::user()->id; 
                     $newPost->save();
                 }
             }
@@ -122,7 +116,7 @@ class CalendarController extends Controller
         } else {
             return response()->json([
                 'error' => 'Une erreur s\'est produite lors de la récupération des publications.',
-                'details' => $response->body() // Include the body of the response for debugging
+                'details' => $response->body()
             ], 500);
         }
     }

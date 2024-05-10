@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Facebook\Facebook;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class DraftController extends Controller
 {
@@ -20,10 +21,9 @@ class DraftController extends Controller
         // Récupération des données de la requête
         $pageId = $request->input('page_id');
         $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
-        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
         $message = $request->input('message') ?? '';
-        $Programming_options = 'Brouillons';
-
+        $Programming_options = 'saved as draft'; 
+        
         $post = new Post();
         if ($request->hasFile('media_path')) {
             $mediaFile = $request->file('media_path');
@@ -34,24 +34,27 @@ class DraftController extends Controller
         }
 
         if ($request->hasFile('media_paths')) {
-            $mediaPaths = $request->file('media_paths');
-
-            $uploadedFilesPaths = [];
-
-            foreach ($mediaPaths as $media) {
+            $mediaPaths = [];
+            $mediaFiles = $request->file('media_paths');
+        
+            foreach ($mediaFiles as $media) {
                 $extension = $media->getClientOriginalExtension();
                 $filename = time() . '.' . $extension;
                 $media->move('uploads/', $filename);
-
-                $uploadedFilesPaths[] = 'uploads/' . $filename;
+        
+                $uploadedFilePath = 'uploads/' . $filename;
+                $mediaPaths[] = $uploadedFilePath;
             }
-
-            $post->media_paths = json_encode($uploadedFilesPaths);
+        
+            // Assurez-vous que $mediaPaths contient les chemins des fichiers correctement enregistrés
+            $post->media_paths = json_encode($mediaPaths);
+        
+            //return response()->json(['media_paths' => $mediaPaths]);
         }
 
         // Création et sauvegarde du post en tant que brouillon
         $post->page_id = $pageId;
-
+        
         $response = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
 
         if ($response->failed()) {
@@ -66,9 +69,12 @@ class DraftController extends Controller
         $post->access_token = $access_token;
         $post->message = $message;
         $post->Programming_options = $Programming_options;
+        $post->user_id = Auth::user()->id; 
+        
         $post->save();
 
         return response()->json(['message' => 'Post sauvegardé en tant que brouillon']);
     }
 
+    
 }

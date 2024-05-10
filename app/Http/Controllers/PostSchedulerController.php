@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Validator;
+use Validator;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Post;
 use Illuminate\Http\Request;
@@ -13,83 +13,28 @@ use Facebook\Exceptions\FacebookResponseException;
 use Facebook\Exceptions\FacebookSDKException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class PostSchedulerController extends Controller
 {
         //protected $providers = ["facebook"];
 
-    public function schedulePost(Request $request)
-    {
-        $pageId = $request->input('page_id');
-        $message = $request->input('message') ?? '';
-        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
-        $scheduledDateTime = $request->input('scheduled_datetime');
-
-        // Validation des entrées
-        $validator = Validator::make($request->all(), [
-            'page_id' => 'required',
-            'message' => 'nullable',
-            'scheduled_datetime' =>  'required|date_format:Y-m-d H:i:s',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()->first()], 400);
-        }
-
-        // Conversion de la date planifiée en timestamp
-        $scheduledDateTime = Carbon::parse($scheduledDateTime);
-
-        $now = Carbon::now();
-        $nowTime=$now->copy()->addHour();
-
-
-        if($scheduledDateTime ->diffInMinutes($nowTime)<10|| $scheduledDateTime->diffInDays($nowTime) < 30 )
+        public function schedulePost(Request $request)
         {
-            // **Gestion des médias**
-            $post = new Post();
-            $mediaUploaded = false;
+            $pageId = $request->input('page_id');
+            $message = $request->input('message') ?? '';
+            $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
+            $scheduledDateTime = $request->input('scheduled_datetime');
+            
+            // Validation des entrées
+            $validator = Validator::make($request->all(), [
+                'page_id' => 'required',
+                'message' => 'nullable',
+                'scheduled_datetime' =>  'required|date_format:Y-m-d H:i:s',
+            ]);
 
-            if ($request->hasFile('media_path')) {
-                $mediaFile = $request->file('media_path');
-
-                $ext = $mediaFile->getClientOriginalExtension();
-                $filename = time() . '.' . $ext;
-                $mediaFile->move('uploads/', $filename);
-
-                $post->media_path = 'uploads/' . $filename;
-                $mediaUploaded = true;
-
-                if ($mediaFile->getClientMimeType() == 'video/mp4') {
-                    $response = Http::attach(
-                        'source',
-                        fopen('uploads/' . $filename, 'r'),
-                        'file.' . $ext
-                    )->post("https://graph.facebook.com/v17.0/{$pageId}/videos", [
-                        'description' => $message,
-                        'access_token' => $access_token,
-                        'published' => false,
-                        'scheduled_publish_time' => strtotime($scheduledDateTime),
-                    ]);
-                } else {
-                    $response = Http::attach(
-                        'source',
-                        fopen('uploads/' . $filename, 'r'),
-                        'file.' . $ext
-                    )->post("https://graph.facebook.com/v17.0/{$pageId}/photos", [
-                        'message' => $message,
-                        'access_token' => $access_token,
-                        'published' => false,
-                        'scheduled_publish_time' => strtotime($scheduledDateTime),
-                    ]);
-                }
-
-                if ($response->failed()) {
-                    return response()->json(['error' => 'Échec de la publication sur la page Facebook'], 500);
-                }
-                // Extraction du social_id du post publié
-                $postData = $response->json();
-                $socialId = $postData['id'];
-
+            if ($validator->fails()) {
+                return response()->json(['error' => $validator->errors()->first()], 400);
             }
 
             // Conversion de la date planifiée en timestamp
@@ -97,10 +42,10 @@ class PostSchedulerController extends Controller
 
             $now = Carbon::now();
             $nowTime=$now->copy()->addHour();
-
+            
 
             if($scheduledDateTime ->diffInMinutes($nowTime)<10|| $scheduledDateTime->diffInDays($nowTime) < 30 )
-            {
+            {   
                 // **Gestion des médias**
                 $post = new Post();
                 $mediaUploaded = false;
@@ -205,7 +150,7 @@ class PostSchedulerController extends Controller
                 // **Enregistrement du post dans la base de données**
                 $post->social_id = $socialId;
                 $post->page_id = $pageId;
-
+                
                 $response = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
 
                 if ($response->failed()) {
@@ -216,41 +161,22 @@ class PostSchedulerController extends Controller
                     $pageName = $pageData['name'];
                     $post->page_name = $pageName;
                 }
-                // Extraction du social_id du post publié
-                $postData = $response->json();
-                $socialId = $postData['id'];
 
+                $post->message = $message;
+                $post->scheduledDateTime = $scheduledDateTime;
+                $post->access_token = $access_token;
+                $post->Programming_options = 'programmed';
+                $post->user_id = Auth::user()->id;  
+                $post->save();
+                
+                /*$msg = "Publication programmée avec succès pour la date $scheduledDateTime";
+                return response()->json(['message' =>   $msg ]);*/
+
+                // Retourner le social_id comme réponse JSON
+                return response()->json(['social_id' => $socialId]);
             }
-
-            // **Enregistrement du post dans la base de données**
-            $post->social_id = $socialId;
-            $post->page_id = $pageId;
-
-            $response = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
-
-            if ($response->failed()) {
-                // Gérer l'erreur si la requête échoue
-                $post->page_id = $pageId; // Affecter l'ID de la Page en cas d'erreur
-            } else {
-                $pageData = $response->json();
-                $pageName = $pageData['name'];
-                $post->page_name = $pageName;
-            }
-
-            $post->message = $message;
-            $post->scheduledDateTime = $scheduledDateTime;
-            $post->access_token = $access_token;
-            $post->Programming_options = 'Programmée';
-            $post->save();
-
-            /*$msg = "Publication programmée avec succès pour la date $scheduledDateTime";
-            return response()->json(['message' =>   $msg ]);*/
-
-            // Retourner le social_id comme réponse JSON
-            return response()->json(['social_id' => $socialId]);
+            else{
+                return response()->json(['error' => 'La date de publication doit être comprise entre 10 minutes et 30 jours après la date actuelle'], 400);
+            }       
         }
-        else{
-            return response()->json(['error' => 'La date de publication doit être comprise entre 10 minutes et 30 jours après la date actuelle'], 400);
-        }
-    }
 }
