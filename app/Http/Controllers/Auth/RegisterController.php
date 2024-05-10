@@ -19,6 +19,7 @@ class RegisterController extends Controller
         $user =User::create($newuser);
         $success['token'] = $user->createToken('user', ['app:all'])->plainTextToken;
                 $success['name'] = $user->first_name;
+             
                 $success['success'] = true;
                 return response()->json($success, 200);
     }
