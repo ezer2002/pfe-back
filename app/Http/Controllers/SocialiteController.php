@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PageSociauxModel;
 use Validator;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Post;
@@ -20,11 +21,24 @@ class SocialiteController extends Controller
 {
     public function handleGraphInteraction(Request $request)
     {
-        // Récupération des données de la requête
-        $pageId = $request->input('page_id');
-        $message = $request->input('message')  ??'';
-        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
+
+
+        $page = PageSociauxModel::find($request->social_id);
+        if (!$page) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+
+        $page = PageSociauxModel::find($request->social_id);
+        if (!$page) {
+            return response()->json(['error' => 'Page not found'], 404);
+        }
+
+        $pageId = $page->page_id; // Accès à la propriété page_id de l'objet $page
+        $message = $request->input('message') ;
+        $access_token = $page->access_token; // Accès à la propriété access_token de l'objet $page
         $Programming_options = 'published';
+
 
         $post = new Post();
         if ($request->hasFile('media_path')) {
@@ -192,6 +206,7 @@ class SocialiteController extends Controller
         $post->message = $message;
         $post->access_token = $access_token;
         $post->Programming_options = $Programming_options;
+        $post->social_id =$request->input('social_id');
         $post->save();
         // Réponse JSON
         //return response()->json(['message' => 'Publié sur la page Facebook et enregistré dans la base de données',]);

@@ -17,12 +17,15 @@ class CheckAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // if (!Auth::User()) {
-        //     // Si l'utilisateur n'est pas un administrateur, vous pouvez renvoyer une réponse non autorisée
-        //     return response()->json(['message' => 'Unauthorized'], 401);
-        // }
+        if ($request->user("sanctum")) {
+            return redirect()->route('wassim');
+
+
+        }
+
+        return response()->json(['message' => 'Unauthorized'], 401);
+
 
         // // Si l'utilisateur est un administrateur, passez à la prochaine étape de la requête
-        return $next($request);
     }
 }

@@ -17,21 +17,18 @@ class PageSociauxController extends Controller
        $nouvelleEntree->access_token = $request->input('access_token');
        $nouvelleEntree->user_id = $request->input('user_id');
 
-
        $nouvelleEntree->save();
 
 
        return response()->json(['message' => 'done'], 200);
     }
-    public function getAll()
-{
-    // Récupérer tous les enregistrements de votre modèle
-    $records = PageSociauxModel::all();
 
-    // Retourner les enregistrements récupérés
-    return response()->json($records);
+public function getUserPages(Request $request)
+{    $userId = $request->query('user_id'); // Récupérer l'ID de l'utilisateur depuis la requête GET
+
+    $userPages = PageSociauxModel::where('user_id', $userId)->get();
+    return response()->json($userPages);
 }
-
 
 
 public function destroy($id)

@@ -13,6 +13,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\PageSociauxController;
 use App\Http\Controllers\PostDeleteController;
 use App\Http\Controllers\PostModificationController;
+use Laravel\Sanctum\Sanctum;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,13 +56,12 @@ Route::post('/register',[RegisterController::class,'register']);
 Route::post('/login',[LoginController::class,'login']);
 
 
-Route::group(['middleware' =>['check.admin']],function () {
 
 
 
 Route::post('/addpagesociaux',[PageSociauxController::class,'store']);
 
-Route::get('/getAllpage',[PageSociauxController::class,'getAll']);
+Route::get('/getUserPages',[PageSociauxController::class,'getUserPages']);
 
 Route::delete('/pages/{id}',[PageSociauxController::class,'destroy']);
 Route::post('/generate-profile',[AiController::class,'index']);
@@ -79,4 +79,3 @@ Route::get('/meta-business', [CalendarController::class, 'fetchPostsFromMeta']);
 Route::post('/modify-post',[PostModificationController::class,'modifyPost']);
 Route::post('/delete-post',[PostDeleteController::class,'deletePost']);
 
-});
