@@ -45,10 +45,9 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
-    public function posts()
-    {
-        return $this->hasManyThrough(Post::class, PageSociauxModel::class);
-    }
+    public function pageSociaux()
+    {        return  $this->hasMany(PageSociauxModel::class,'user_id','id');
 
+    }
 
 }

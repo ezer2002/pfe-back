@@ -15,11 +15,9 @@ class Post extends Model
     protected $casts = [
         'media_paths' => 'json', // Convertir le champ media_paths en JSON lors de la lecture/écriture
     ];
-
-    public function user()
+    public function page()
     {
-        return $this->belongsTo(User::class);
+     return $this->belongsTo(PageSociauxModel::class, 'idpage','id');
     }
 
-    
 }

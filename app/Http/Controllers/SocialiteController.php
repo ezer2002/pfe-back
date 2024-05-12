@@ -23,11 +23,6 @@ class SocialiteController extends Controller
     {
 
 
-        $page = PageSociauxModel::find($request->social_id);
-        if (!$page) {
-            return response()->json(['error' => 'User not found'], 404);
-        }
-
 
         $page = PageSociauxModel::find($request->social_id);
         if (!$page) {
@@ -207,6 +202,8 @@ class SocialiteController extends Controller
         $post->access_token = $access_token;
         $post->Programming_options = $Programming_options;
         $post->social_id =$request->input('social_id');
+        $post->idpage =$request->input('social_id');
+
         $post->save();
         // Réponse JSON
         //return response()->json(['message' => 'Publié sur la page Facebook et enregistré dans la base de données',]);

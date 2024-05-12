@@ -76,6 +76,6 @@ Route::get('/events', [CalendarController::class, 'getEvents']);
 
 Route::get('/meta-business', [CalendarController::class, 'fetchPostsFromMeta']);
 
-Route::post('/modify-post',[PostModificationController::class,'modifyPost']);
+Route::put('/modify-post',[PostModificationController::class,'modifyPost']);
 Route::post('/delete-post',[PostDeleteController::class,'deletePost']);
 

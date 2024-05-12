@@ -21,24 +21,44 @@ class CalendarController extends Controller
     public function getEvents(Request $request)
     {
 
-        $user = User::find($request->userId);
+        $userId = $request->query('userId');
+        $user = User::find(1);
+
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }
-
-        // Récupérer les publications de l'utilisateur à travers les pages sociales
-        $userPosts = $user->posts;
-
-        $posts = Post::all();
-        /*$user = auth()->user();
-        $posts = $user->posts;*/
-        //$posts = Post::where('user_id', auth()->id())->get();
+        $userPageSociaux  = $user->pageSociaux;
 
 
+        $userPosts = [];
 
-        return response()->json(  $userPosts);
+        foreach ($userPageSociaux as $pageSociaux) {
+            // Récupérer les posts associés à ce PageSociaux
+            $posts = $pageSociaux->posts;
+
+            // Ajouter chaque post au tableau des posts
+            foreach ($posts as $post) {
+                $userPosts[] = [
+                    'id' => $post->id,
+                    'social_id' => $post->social_id,
+                    'page_name' => $post->page_name,
+                    'page_id' => $post->page_id,
+                    'message' => $post->message,
+                    'media_path' => $post->media_path,
+                    'media_paths' => $post->media_paths,
+                    'access_token' => $post->access_token,
+                    'Programming_options' => $post->Programming_options,
+                    'scheduledDateTime' => $post->scheduledDateTime,
+                    'created_at' => $post->created_at,
+                    'updated_at' => $post->updated_at,
+                    'idpage' => $post->idpage,
+                ];
+            }
+        }
+
+        // Retourner le JSON contenant la liste des posts
+        return response()->json($userPosts);
     }
-
 public function fetchPostsFromMeta()
     {
         $pageId = "115449061452354";

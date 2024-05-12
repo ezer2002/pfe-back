@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PageSociauxModel;
 use Validator;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Post;
@@ -19,9 +20,14 @@ class DraftController extends Controller
     public function saveDraft(Request $request)
     {
         // Récupération des données de la requête
-        $pageId = $request->input('page_id');
-        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
-        $message = $request->input('message') ?? '';
+        $page = PageSociauxModel::find($request->social_id);
+        if (!$page) {
+            return response()->json(['error' => 'Page not found'], 404);
+        }
+
+        $pageId = $page->page_id; // Accès à la propriété page_id de l'objet $page
+        $message = $request->input('message') ;
+        $access_token = $page->access_token; //
         $Programming_options = 'saved as draft';
 
         $post = new Post();
@@ -69,7 +75,8 @@ class DraftController extends Controller
         $post->access_token = $access_token;
         $post->message = $message;
         $post->Programming_options = $Programming_options;
-        // $post->user_id = Auth::user()->id;
+        $post->social_id =$request->input('social_id');
+        $post->idpage =$request->input('social_id');
 
         $post->save();
 

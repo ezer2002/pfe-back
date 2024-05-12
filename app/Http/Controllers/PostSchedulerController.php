@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PageSociauxModel;
 use Validator;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Post;
@@ -21,11 +22,16 @@ class PostSchedulerController extends Controller
 
         public function schedulePost(Request $request)
         {
-            $pageId = $request->input('page_id');
-            $message = $request->input('message') ?? '';
-            $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD";
-            $scheduledDateTime = $request->input('scheduled_datetime');
-            
+            $page = PageSociauxModel::find($request->social_id);
+        if (!$page) {
+            return response()->json(['error' => 'Page not found'], 404);
+        }
+
+        $pageId = $page->page_id; // Accès à la propriété page_id de l'objet $page
+        $message = $request->input('message') ;
+        $access_token = $page->access_token;
+           $scheduledDateTime = $request->input('scheduled_datetime');
+
             // Validation des entrées
             $validator = Validator::make($request->all(), [
                 'page_id' => 'required',
@@ -42,10 +48,10 @@ class PostSchedulerController extends Controller
 
             $now = Carbon::now();
             $nowTime=$now->copy()->addHour();
-            
+
 
             if($scheduledDateTime ->diffInMinutes($nowTime)<10|| $scheduledDateTime->diffInDays($nowTime) < 30 )
-            {   
+            {
                 // **Gestion des médias**
                 $post = new Post();
                 $mediaUploaded = false;
@@ -150,7 +156,7 @@ class PostSchedulerController extends Controller
                 // **Enregistrement du post dans la base de données**
                 $post->social_id = $socialId;
                 $post->page_id = $pageId;
-                
+
                 $response = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
 
                 if ($response->failed()) {
@@ -166,9 +172,11 @@ class PostSchedulerController extends Controller
                 $post->scheduledDateTime = $scheduledDateTime;
                 $post->access_token = $access_token;
                 $post->Programming_options = 'programmed';
-                $post->user_id = Auth::user()->id;  
+                $post->social_id =$request->input('social_id');
+                $post->idpage =$request->input('social_id');
+
                 $post->save();
-                
+
                 /*$msg = "Publication programmée avec succès pour la date $scheduledDateTime";
                 return response()->json(['message' =>   $msg ]);*/
 
@@ -177,6 +185,6 @@ class PostSchedulerController extends Controller
             }
             else{
                 return response()->json(['error' => 'La date de publication doit être comprise entre 10 minutes et 30 jours après la date actuelle'], 400);
-            }       
+            }
         }
 }
