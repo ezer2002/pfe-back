@@ -15,6 +15,7 @@ class PageSociauxController extends Controller
        $nouvelleEntree->page_name = $request->input('page_name');
        $nouvelleEntree->page_id = $request->input('page_id');
        $nouvelleEntree->access_token = $request->input('access_token');
+       $nouvelleEntree->user_id = $request->input('user_id');
 
 
        $nouvelleEntree->save();

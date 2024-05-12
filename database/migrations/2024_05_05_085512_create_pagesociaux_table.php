@@ -16,7 +16,8 @@ return new class extends Migration
             $table->string('page_name');
             $table->string('page_id');
             $table->string('access_token');
-
+            $table->unsignedBigInteger('user_id');
+            $table->foreign('user_id')->references('id')->on('users');
             $table->timestamps();
         });
     }
