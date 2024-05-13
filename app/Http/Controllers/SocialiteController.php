@@ -70,6 +70,7 @@ class SocialiteController extends Controller
             $postData = $response->json();
             $socialId = $postData['id'];
         }
+
         if ($request->hasFile('media_paths')) {
             
             $mediaPaths = [];
@@ -104,17 +105,12 @@ class SocialiteController extends Controller
                 'message' => $message, // Description de l'album
             ]);
         
-            // Vérification des erreurs de requête
             if ($response->failed()) {
-                // Extraire les détails de l'erreur
                 $errorDetails = $response->body();
-        
-                // Journaliser l'erreur
-                Log::error('Erreur lors de la publication de l\'album sur Facebook: ' . $errorDetails);
-        
-                // Retourner un message d'erreur détaillé
-                return response()->json(['error' => 'Échec de la publication de l\'album sur Facebook. Détails : ' . $errorDetails], 500);
+                Log::error('Error creating album on Facebook: ' . $errorDetails);
+                return response()->json(['error' => 'Failed to create album on Facebook. Details: ' . $errorDetails], 500);
             }
+        
         
             $socialId = $response->json()['id']; // Récupérer l'ID de l'album créé
         
@@ -154,7 +150,66 @@ class SocialiteController extends Controller
             // Enregistrement des médias et du message dans la base de données
             $post->media_paths = json_encode($mediaPaths);
         }
+      
 
+        /*if ($request->hasFile('media_paths')) {
+            $albumItems = $request->file('media_paths'); // Utilisez $request->file au lieu de $request->input
+        
+            if ($albumItems) {
+                $mediaIds = [];
+        
+                foreach ($albumItems as $item) {
+                    $response = Http::post("https://graph.facebook.com/v17.0/{$pageId}/photos", [
+                        'access_token' => $access_token,
+                        'url' => $item->getPathname(), // Utilisez getPathname() pour obtenir le chemin du fichier
+                        'message' => $item->getClientOriginalName(), // Utilisez getOriginalName() pour le nom du fichier
+                    ]);
+        
+                    if ($response->failed()) {
+                        Log::error("Failed to create media object for album: {$response->body()}");
+                        return response()->json(['error' => 'Failed to create media object for album on Facebook'], 500);
+                    }
+        
+                    $mediaIds[] = $response->json()['id'];
+                    return($mediaIds);
+                }
+        
+                $children = implode(',', $mediaIds);
+        
+                $response = Http::post("https://graph.facebook.com/v17.0/{$pageId}/media", [
+                    'message' => $request->input('message'),
+                    'media_type' => 'CAROUSEL',
+                    'children' => $children,
+                    'access_token' => $access_token,
+                ]);
+        
+                // Vérification des erreurs de requête
+                if ($response->failed()) {
+                    // Extraire les détails de l'erreur
+                    $errorDetails = $response->body();
+            
+                    // Journaliser l'erreur
+                    Log::error('Erreur lors de la publication de l\'album sur Facebook: ' . $errorDetails);
+            
+                    // Retourner un message d'erreur détaillé
+                    return response()->json(['error' => 'Échec de la publication de l\'album sur Facebook. Détails : ' . $errorDetails], 500);
+                }
+        
+                $mediaId = $response->json()['id'];
+        
+                $response = Http::post("https://graph.facebook.com/v17.0/{$pageId}/media_publish", [
+                    'creation_id' => $mediaId,
+                    'access_token' => $access_token,
+                ]);
+        
+                if ($response->failed()) {
+                    Log::error("Failed to publish album: {$response->body()}");
+                    return response()->json(['error' => 'Failed to publish album on Facebook'], 500);
+                }
+        
+                $socialId = $response->json()['id'];
+            }
+        }*/
         
 
         // Publication de message seulement si aucun média n'est présent
