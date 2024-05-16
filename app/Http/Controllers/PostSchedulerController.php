@@ -102,7 +102,8 @@ class PostSchedulerController extends Controller
 
                     foreach ($mediaPaths as $media) {
                         $extension = $media->getClientOriginalExtension();
-                        $filename = time() . '_' . Str::random(5) . '.' . $extension;
+                        $uniqueId = uniqid(); // Generate a unique ID
+                        $filename = time() . '_' . $uniqueId . '.' . $extension;
                         $media->move('uploads/', $filename);
 
                         $uploadedFilesPaths[] = 'uploads/' . $filename;

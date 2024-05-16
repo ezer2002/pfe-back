@@ -89,8 +89,9 @@ class SocialiteController extends Controller
             // Parcourir et enregistrer les médias pour l'album
             foreach ($request->file('media_paths') as $index => $media) {
                 $extension = $media->getClientOriginalExtension();
-                $filename = time() . $index . '.' . $extension; // Ajoutez index pour éviter le remplacement des fichiers portant le même nom
-                $media->move('uploads/', $filename); // Déplacer le fichier téléchargé vers le répertoire de stockage
+                $uniqueId = uniqid(); // Generate a unique ID
+                $filename = time() . '_' . $uniqueId . '.' . $extension;
+                 $media->move('uploads/', $filename); 
 
                 $storedPath = 'uploads/' . $filename;
                 $mediaPaths[] = $storedPath; // Ajoutez le chemin stocké au tableau

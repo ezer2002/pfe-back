@@ -45,7 +45,9 @@ class DraftController extends Controller
 
             foreach ($mediaFiles as $media) {
                 $extension = $media->getClientOriginalExtension();
-                $filename = time() . '.' . $extension;
+                $uniqueId = uniqid(); // Generate a unique ID
+                $filename = time() . '_' . $uniqueId . '.' . $extension;
+                // $filename = time() . '.' . $extension;
                 $media->move('uploads/', $filename);
 
                 $uploadedFilePath = 'uploads/' . $filename;
