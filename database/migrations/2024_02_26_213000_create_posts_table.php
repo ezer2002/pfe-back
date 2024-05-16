@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('Programming_options')->default('published');
             $table->dateTime('scheduledDateTime')->nullable();
             $table->timestamps();
+
         });
     }
 

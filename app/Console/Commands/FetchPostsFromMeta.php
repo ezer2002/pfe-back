@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Http\Controllers\CalendarController;
 use App\Models\Post;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class FetchPostsFromMeta extends Command
 {
@@ -38,7 +39,10 @@ class FetchPostsFromMeta extends Command
     public function handle()
     {
         $controller = new CalendarController();
-        $controller->fetchPostsFromMeta();
+        
+        $request = Request::create('/', 'GET', ['page_id' => '115449061452354']); 
+
+        $controller->fetchPostsFromMeta($request);
 
         $scheduledPosts = Post::where('Programming_options', 'programmed')
                             ->where('scheduledDateTime', '<=', Carbon::now())

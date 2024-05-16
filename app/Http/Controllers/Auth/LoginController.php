@@ -6,27 +6,29 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+
 class LoginController extends Controller
 {
-    public function login (LoginRequest $request){
-        $credentials = [
-        'email' => $request->email,
-        'password' => $request->password,
-        ];
-        if(auth()->attempt ($credentials )){
-                /** @var \App\Models\User $user **/
+    public function login(Request $request){
+        $user = User::where('email',  $request->email)->first();
+          if (! $user || ! \Illuminate\Support\Facades\Hash::check($request->password, $user->password))
+      {
+            return response()->json([
+                'message' => ['Username or password incorrect'],
+            ],300);
+        }
 
-        $user =Auth::user();
         $user->tokens()->delete();
-        $success['token'] = $user->createToken(request()->userAgent())->plainTextToken;
-        $success['name'] = $user->first_name;
-        $success['success'] =true;
-        return response()->json($success,200);}
-        else{
-            return response()->json(['error'=>"Unauthorised"]);
-        }
 
-        }
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User logged in successfully',
+            'name' => $user->name,
+            'id' => $user->id,
+            'token' => $user->createToken('auth_token')->plainTextToken,
+        ]);
+}
         // public function logout(Request $request)
         // {
         //     $request->user()->tokens()->delete();

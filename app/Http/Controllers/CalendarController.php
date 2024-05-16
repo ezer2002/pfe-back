@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Post;
+use App\Models\PageSociauxModel;
 use Illuminate\Support\Facades\Http;
 use DateTime;
 use FacebookAds\Api;
@@ -12,44 +13,90 @@ use FacebookAds\Object\AdAccount;
 use FacebookAds\Object\AdCreative;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+
+
+use Validator;
+use Illuminate\Support\Facades\Storage;
+
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+
 
 class CalendarController extends Controller
 {
 
 
-    public function getEvents()
+    public function getEvents(Request $request)
     {
 
-        //$posts = Post::all();
-        // $posts = Post::select('id','page_name', 'page_id', 'Programming_options', 'created_at', 'scheduledDateTime')->get();
+        $userId = $request->query('userId');
+        $user = User::find(  $userId);
 
-        $posts = Post::all();
-        /*$user = auth()->user();
-        $posts = $user->posts;*/
-        //$posts = Post::where('user_id', auth()->id())->get();
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+        $userPageSociaux  = $user->pageSociaux;
+        $userMetaPosts = [];
 
-        $events = $posts->map(function($post) {
-            $event = [
-                'id' => $post->id,
-                'title' => $post->page_name,
-                'start' => $post->Programming_options === 'published' ? $post->created_at : ($post->Programming_options === 'programmed' ? $post->scheduledDateTime : $post->created_at),
-                'end' => $post->Programming_options === 'published' ? $post->created_at : ($post->Programming_options === 'programmed' ? $post->scheduledDateTime : $post->created_at),
-                'color' => $post->Programming_options === 'published' ? 'green'
-                        : ($post->Programming_options === 'programmed' ? 'orange' : 'blue'),
-                'subtitle' => $post->Programming_options,
-            ];
+        $metapost = Post::where('idpage',NULL)->get();
 
-            return $event;
-        });
+            foreach(   $userPageSociaux as $page){
+                foreach($metapost as $post){
+                    if($page->page_id==$post->page_id){
+                        $userMetaPosts[]=
+                            $post;
+                            
+                        
 
+                    }
+                }
+                 
+            }
+        $userPosts = [];
 
-        return response()->json(  $posts);
+        foreach ($userPageSociaux as $pageSociaux) {
+            // Récupérer les posts associés à ce PageSociaux
+            $posts = $pageSociaux->posts;
+
+            // Ajouter chaque post au tableau des posts
+            foreach ($posts as $post) {
+                $userPosts[] = [
+                    'id' => $post->id,
+                    'social_id' => $post->social_id,
+                    'page_name' => $post->page_name,
+                    'page_id' => $post->page_id,
+                    'message' => $post->message,
+                    'media_path' => $post->media_path,
+                    'media_paths' => $post->media_paths,
+                    'access_token' => $post->access_token,
+                    'Programming_options' => $post->Programming_options,
+                    'scheduledDateTime' => $post->scheduledDateTime,
+                    'created_at' => $post->created_at,
+                    'updated_at' => $post->updated_at,
+                    'idpage' => $post->idpage,
+                ];
+            }
+        }
+       
+        $userPosts = collect($userPosts)->concat($userMetaPosts);
+
+        // Retourner le JSON contenant la liste des posts
+        return response()->json($userPosts);
+    }
+    public function fetchPostsFromMeta(Request $request)
+    {
+        
+        $page_id = $request->query('page_id'); // Récupérer idpage à partir de la requête
+    $page = PageSociauxModel::where('page_id', $page_id)->first();
+
+    if (!$page) {
+        return response()->json(['error' =>$page_id ], 404);
     }
 
-public function fetchPostsFromMeta()
-    {
-        $pageId = "115449061452354";
-        $access_token = "EAADutQr9i3MBO7pDQYZAcGyhfAaRyA3PHOVL4JP07vLKJa57CocgMWgKESNZB5vjuN1RksK7MZAf6b0l0JzrA9T45zpthhtjFgq1g3ZBWyS06lSbSjxrSp54YfDmbeTt0SJuGEVZAvByILMNio4mIEoIZCp0tuEUfrpUxubL2I5mQAZAxHZAorNE7wK7ZCIFlk54ZD"; 
+        $pageId = $page->page_id;
+        $access_token = $page->access_token; 
+
         $url = "https://graph.facebook.com/v17.0/{$pageId}/feed?fields=id,message,created_time,attachments{media}&access_token={$access_token}&is_published=false";
         $response = Http::get($url);
 
@@ -69,44 +116,47 @@ public function fetchPostsFromMeta()
                 $programmingOptions = 'published';
 
                 $existingPost = Post::where('social_id', $socialId)->first();
+              
 
-                // Récupérer le nom de la page à partir de l'ID de la page
-                $responsePage = Http::get("https://graph.facebook.com/v17.0/{$pageId}?fields=name&access_token={$access_token}");
+                $pageName = $page->page_name;
 
-                if ($responsePage->successful()) {
-                    $pageData = $responsePage->json();
-                    $pageName = $pageData['name'];
-                } else {
-                    $pageName = 'Innovation page'; 
-                }
-
-                if ($existingPost)   {  
+                if ($existingPost)   {
                     // Update the existing post
                     $existingPost->update([
                         'message' => $message,
                         'media_path' => $mediaPath,
                         'access_token' => $access_token,
                         'Programming_options' => $programmingOptions,
-                        'page_name' => $pageName,
+                        'page_name' =>$pageName,
+                  
                     ]);
                     $existingPost->created_at = new Carbon($postData['created_time']);
+                 
 
-                    $existingPost->user_id = Auth::user()->id; 
-                    $existingPost->save();
+                    $existingPost->update();
+                  
                 } else {
                     // Create a new post record
-                    $newPost = new Post([
-                        'social_id' => $socialId,
-                        'page_id' => $pageId,
-                        'page_name' => $pageName,
-                        'message' => $message,
-                        'media_path' => $mediaPath,
-                        'access_token' => $access_token,
-                        'Programming_options' => $programmingOptions,
-                    ]);
-                    $newPost->created_at = new Carbon($postData['created_time']);
-                    $newPost->user_id = Auth::user()->id; 
-                    $newPost->save();
+                    $post = new Post();
+
+
+
+
+                    $post->social_id = $socialId;
+                    $post->page_id = $pageId;
+            
+                  
+                    $post->page_name = $pageName;
+                    $post->media_path = $mediaPath;
+
+                    $post->message = $message;
+                    $post->access_token = $access_token;
+                    $post->Programming_options = $programmingOptions;
+               
+                    // $post->idpage =$idpage;
+                    $post->created_at = new Carbon($postData['created_time']);
+                    
+                    $post->save();
                 }
             }
 

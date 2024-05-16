@@ -12,4 +12,9 @@ class PageSociauxModel extends Model
 
     protected $fillable = ['page_name','page_id','access_token'];
 
+    public function posts()
+    {
+          return  $this->hasMany(Post::class,'idpage','id');
+
+    }
 }
