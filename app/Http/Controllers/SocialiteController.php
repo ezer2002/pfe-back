@@ -164,8 +164,6 @@ class SocialiteController extends Controller
             // Enregistrement des médias et du message dans la base de données
             $post->media_paths = json_encode($mediaPaths);
         }
-      
-
 
         // Publication de message seulement si aucun média n'est présent
         if (!$request->hasFile('media_path') && !$request->hasFile('media_paths') && !empty($message)) {

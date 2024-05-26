@@ -12,25 +12,26 @@ use Illuminate\Support\Facades\Hash as FacadesHash;
 class RegisterController extends Controller
 {
 
-public function register(Request $request)
-{
-      $validatedData = $request->validate([
-          'name' => 'required|string|max:255',
-          'email' => 'required|string|email|max:255|unique:users',
-          'socite' => 'required|string|max:255',
-          'tel' => 'required|string|max:255',
-          'password' => 'required|string|min:8',
-        ]);
+    public function register(Request $request)
+    {
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'socite' => 'required|string|max:255',
+            'tel' => 'required|string|max:255',
+            'password' => 'required|string|min:6',
+            ]);
 
-        $user = User::create([
-            'name' => $validatedData['name'],
-            'email' => $validatedData['email'],
-            'socite' => $validatedData['socite'],
-            'tel' => $validatedData['tel'],
-            'password' => \Illuminate\Support\Facades\Hash::make($validatedData['password']),
-        ]);
-        return response()->json([
-            'name' => $user->name,
-            'email' => $user->email,
-        ]);
-    }}
+            $user = User::create([
+                'name' => $validatedData['name'],
+                'email' => $validatedData['email'],
+                'socite' => $validatedData['socite'],
+                'tel' => $validatedData['tel'],
+                'password' => \Illuminate\Support\Facades\Hash::make($validatedData['password']),
+            ]);
+            return response()->json([
+                'name' => $user->name,
+                'email' => $user->email,
+            ]);
+    }
+}

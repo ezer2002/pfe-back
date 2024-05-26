@@ -28,11 +28,11 @@ class LoginController extends Controller
             'id' => $user->id,
             'token' => $user->createToken('auth_token')->plainTextToken,
         ]);
-}
+    }
         // public function logout(Request $request)
         // {
         //     $request->user()->tokens()->delete();
 
         //     return response()->json(['message' => 'Logged out successfully'], 200);
         // }
-    }
+}

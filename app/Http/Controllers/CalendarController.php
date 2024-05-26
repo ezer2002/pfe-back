@@ -88,87 +88,91 @@ class CalendarController extends Controller
     {
         
         $page_id = $request->query('page_id'); // Récupérer idpage à partir de la requête
-    $page = PageSociauxModel::where('page_id', $page_id)->first();
+        $page = PageSociauxModel::where('page_id', $page_id)->first();
 
-    if (!$page) {
-        return response()->json(['error' =>$page_id ], 404);
-    }
-
-        $pageId = $page->page_id;
-        $access_token = $page->access_token; 
-
-        $url = "https://graph.facebook.com/v17.0/{$pageId}/feed?fields=id,message,created_time,attachments{media}&access_token={$access_token}&is_published=false";
-        $response = Http::get($url);
-
-        if ($response->successful()) {
-            $postsData = $response->json()['data'];
-
-            foreach ($postsData as $postData) {
-                $socialId = $postData['id'];
-                $message = $postData['message'] ?? '';
-                $mediaPath = null;
-
-                if (!empty($postData['attachments']['data'])) {
-                    $mediaItem = $postData['attachments']['data'][0]['media'];
-                    $mediaPath = $mediaItem['image']['src'] ?? ($mediaItem['video']['src'] ?? null);
-                }
-
-                $programmingOptions = 'published';
-
-                $existingPost = Post::where('social_id', $socialId)->first();
-              
-
-                $pageName = $page->page_name;
-
-                if ($existingPost)   {
-                    // Update the existing post
-                    $existingPost->update([
-                        'message' => $message,
-                        'media_path' => $mediaPath,
-                        'access_token' => $access_token,
-                        'Programming_options' => $programmingOptions,
-                        'page_name' =>$pageName,
-                  
-                    ]);
-                    $existingPost->created_at = new Carbon($postData['created_time']);
-                 
-
-                    $existingPost->update();
-                  
-                } else {
-                    // Create a new post record
-                    $post = new Post();
-
-
-
-
-                    $post->social_id = $socialId;
-                    $post->page_id = $pageId;
-            
-                  
-                    $post->page_name = $pageName;
-                    $post->media_path = $mediaPath;
-
-                    $post->message = $message;
-                    $post->access_token = $access_token;
-                    $post->Programming_options = $programmingOptions;
-               
-                    // $post->idpage =$idpage;
-                    $post->created_at = new Carbon($postData['created_time']);
-                    
-                    $post->save();
-                }
-            }
-
-            return response()->json([
-                'message' => 'Publications récupérées avec succès.',
-            ]);
-        } else {
-            return response()->json([
-                'error' => 'Une erreur s\'est produite lors de la récupération des publications.',
-                'details' => $response->body()
-            ], 500);
+        if (!$page) {
+            return response()->json(['error' =>$page_id ], 404);
         }
+
+            $pageId = $page->page_id;
+            $access_token = $page->access_token; 
+
+            $url = "https://graph.facebook.com/v17.0/{$pageId}/feed?fields=id,message,created_time,attachments{media}&access_token={$access_token}&is_published=false";
+            $response = Http::get($url);
+
+            if ($response->successful()) {
+                $postsData = $response->json()['data'];
+
+                foreach ($postsData as $postData) {
+                    $socialId = $postData['id'];
+                    $message = $postData['message'] ?? '';
+                    $mediaPath = null;
+
+                    if (!empty($postData['attachments']['data'])) {
+                        $mediaItem = $postData['attachments']['data'][0]['media'];
+                        if (isset($mediaItem['image'])) {
+                            $mediaPath = $mediaItem['image']['src'];
+                        } elseif (isset($mediaItem['video'])) {
+                            $mediaPath = $mediaItem['video']['src'];
+                        }
+                    }
+
+                    $programmingOptions = 'published';
+
+                    $existingPost = Post::where('social_id', $socialId)->first();
+                
+
+                    $pageName = $page->page_name;
+
+                    if ($existingPost)   {
+                        // Update the existing post
+                        $existingPost->update([
+                            'message' => $message,
+                            'media_path' => $mediaPath,
+                            'access_token' => $access_token,
+                            'Programming_options' => $programmingOptions,
+                            'page_name' =>$pageName,
+                    
+                        ]);
+                        $existingPost->created_at = new Carbon($postData['created_time']);
+                    
+
+                        $existingPost->update();
+                    
+                    } else {
+                        // Create a new post record
+                        $post = new Post();
+
+
+
+
+                        $post->social_id = $socialId;
+                        $post->page_id = $pageId;
+                
+                    
+                        $post->page_name = $pageName;
+                        $post->media_path = $mediaPath;
+
+                        $post->message = $message;
+                        $post->access_token = $access_token;
+                        $post->Programming_options = $programmingOptions;
+                
+                        // $post->idpage =$idpage;
+                        $post->created_at = new Carbon($postData['created_time']);
+                        
+                        $post->save();
+                    }
+                }
+
+                return response()->json([
+                    'message' => 'Publications récupérées avec succès.',
+                ]);
+            } else {
+                return response()->json([
+                    'error' => 'Une erreur s\'est produite lors de la récupération des publications.',
+                    'details' => $response->body()
+                ], 500);
+            }
     }
 
 }

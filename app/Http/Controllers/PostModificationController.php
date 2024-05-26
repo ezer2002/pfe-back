@@ -27,7 +27,7 @@ class PostModificationController extends Controller
         //     'id' => 'required', // Local Post ID
         // ]);
 
-       
+
 
         // Retrieve the post from the database
         $post = Post::find($request->input('id'));
@@ -50,14 +50,20 @@ class PostModificationController extends Controller
             $pageName = $page->page_name;
             $post->page_name = $pageName;
 
-          
-                $post->message = $request->message;
-          
-          
-            if($request->media_path==null){
-                $post->media_path =NULL;
-            }
 
+                $post->message = $request->message;
+
+
+
+                $post->media_path =$request->media_path;
+
+                // Retrieve the current date and time
+        $currentTime = Carbon::now();
+
+        // Update the created_at field of the post with the current date and time
+        $post->created_at = $currentTime;
+
+     
             // Process media_path update if a file is provided
             if ($request->hasFile('media_path')) {
                 $mediaFile = $request->file('media_path');
@@ -69,23 +75,43 @@ class PostModificationController extends Controller
                 $post->media_path = 'uploads/' . $filename;
             }
 
-            if ($request->hasFile('media_paths')) {
-                $mediaPaths = [];
-                $mediaFiles = $request->file('media_paths');
-    
-                foreach ($mediaFiles as $media) {
-                    $extension = $media->getClientOriginalExtension();
-                    $filename = time() . '.' . $extension;
-                    $media->move('uploads/', $filename);
-    
-                    $uploadedFilePath = 'uploads/' . $filename;
-                    $mediaPaths[] = $uploadedFilePath;
-                }
-    
-                // Assurez-vous que $mediaPaths contient les chemins des fichiers correctement enregistrés
-                $post->media_paths = json_encode($mediaPaths);
-    
+if ($request->has('media_pathsdelete')) {
+    $mediaPaths = [];
+    $mediaFiles = $request->input('media_pathsdelete'); // Utilisez input() pour obtenir les données
+
+    if (is_array($mediaFiles)) {
+        foreach ($mediaFiles as $media) {
+            $mediaPaths[] = $media;
+        }
+    } else {
+        $mediaPaths[] = $mediaFiles; // Au cas où il n'y aurait qu'un seul élément
+    }
+
+    // Assurez-vous que $mediaPaths contient les chemins des fichiers correctement enregistrés
+    $post->media_paths = json_encode($mediaPaths);
+    $post->save();
             }
+   if ($request->hasFile('media_paths')) {
+    $existingMediaPaths = json_decode($post->media_paths, true) ?? []; // Récupérer les chemins existants
+
+    $mediaFiles = $request->file('media_paths');
+
+    foreach ($mediaFiles as $media) {
+        $extension = $media->getClientOriginalExtension();
+        $uniqueId = uniqid(); // Generate a unique ID
+        $filename = time() . '_' . $uniqueId . '.' . $extension;
+        // $filename = time() . '.' . $extension;
+        $media->move('uploads/', $filename);
+
+        $uploadedFilePath = 'uploads/' . $filename;
+        $mediaPaths[] = $uploadedFilePath;
+    }
+
+    // Assurez-vous que $mediaPaths contient les chemins des fichiers correctement enregistrés
+    $post->media_paths = json_encode($mediaPaths);
+
+    //return response()->json(['media_paths' => $mediaPaths]);
+}
 
             $post->page_id = $pageId;
 
@@ -95,6 +121,7 @@ class PostModificationController extends Controller
                 $post->Programming_options = 'published';
                  $description = $request->message;
                 $media = $post->media_path;
+               
 
                 // Check if media_path exists and publish post with media
                 /*if (!empty($post->media_path) && file_exists(public_path($post->media_path))) {
@@ -155,8 +182,9 @@ class PostModificationController extends Controller
                         $socialId = $postData['id'];
                     }
                 }*/
-
-                if (!empty($media)) {
+           
+              
+                if ($media!='null') {
                     // Vérifier s'il s'agit d'une vidéo
                     if (mime_content_type(public_path($media)) == 'video/mp4') {
                         // Handle video publication
@@ -189,7 +217,7 @@ class PostModificationController extends Controller
                     $socialId = $postData['id'];
                 }
 
-                if (empty($media) && !empty(   $description)) {
+                if ($media=='null' &&    $description) {
                     // Publication sur Facebook
                     $response = Http::post("https://graph.facebook.com/v17.0/{$pageId}/feed", [
                         'message' =>   $description,
@@ -203,16 +231,16 @@ class PostModificationController extends Controller
                     }
                     // Extraction du social_id du post publié
                     $postData = $response->json();
-                    $socialId = $postData['id'];
+                $socialId = $postData['id'];
                 }
-
+              
                 $post->social_id = $socialId;
                 $post->idpage =$request->input('idpage');
 
-                $post->update();
+                $post->save();
 
                 // Retourner le social_id comme réponse JSON
-                return response()->json(['social_id' => $socialId]);
+                return response()->json(['social_id' =>"ok"]);
 
             }
 
@@ -239,8 +267,7 @@ class PostModificationController extends Controller
 
                 if($scheduledDateTime ->diffInMinutes($nowTime)<10|| $scheduledDateTime->diffInDays($nowTime) < 30 )
                 {
-                    if (!empty($media)) {
-
+                    if ($media!='null') {
                         // Vérifier s'il s'agit d'une vidéo
                         if (mime_content_type(public_path($media)) == 'video/mp4') {
                             // Handle video publication
@@ -249,35 +276,46 @@ class PostModificationController extends Controller
                                 fopen(public_path($media), 'r'),
                                 basename($media)
                             )->post("https://graph.facebook.com/v17.0/{$pageId}/videos", [
-                                'description' => $description,
+                                'description' => $description,  // Use post message as description
                                 'access_token' => $access_token,
-                                'published' => false,
-                                'scheduled_publish_time' => strtotime($scheduledDateTime),
                             ]);
-                        } else {
+                        }else {
                             // Handle image publication
                             $response = Http::attach(
                                 'source',
                                 fopen(public_path($media), 'r'),
                                 basename($media)
-
                             )->post("https://graph.facebook.com/v17.0/{$pageId}/photos", [
-                                'message' => $description,
+                                'message' => $description,  // Use post message as image caption
                                 'access_token' => $access_token,
-                                'published' => false,
-                                'scheduled_publish_time' => strtotime($scheduledDateTime),
                             ]);
+    
+                            if ($response->failed()) {
+                                return response()->json(['error' => 'Failed to publish photo on Facebook'], 500);
+                            }
                         }
-
+    
+                        // Extraction du social_id du post publié
+                        $postData = $response->json();
+                        $socialId = $postData['id'];
+                    }
+    
+                    if ($media=='null' &&    $description) {
+                        // Publication sur Facebook
+                        $response = Http::post("https://graph.facebook.com/v17.0/{$pageId}/feed", [
+                            'message' =>   $description,
+                            'access_token' => $access_token,
+                        ]);
+    
+                        // Vérification des erreurs de requête
                         if ($response->failed()) {
+                            // Gérer l'erreur de requête
                             return response()->json(['error' => 'Échec de la publication sur la page Facebook'], 500);
                         }
                         // Extraction du social_id du post publié
                         $postData = $response->json();
-                        $socialId = $postData['id'];
-
+                    $socialId = $postData['id'];
                     }
-
                     if ($request->hasFile('media_paths')) {
                         $mediaPaths = $request->file('media_paths');
                         $uploadedFilesPaths = [];
@@ -312,26 +350,7 @@ class PostModificationController extends Controller
                         $mediaUploaded = true;
                     }
 
-                    // **Publication de message uniquement**
-                    if (empty($media) && !empty($description)) {
-                        // Publication sur Facebook
-                        $response = Http::post("https://graph.facebook.com/v17.0/{$pageId}/feed", [
-                            'message' => $description,
-                            'access_token' => $access_token,
-                            'published' => false,
-                            'scheduled_publish_time' => $scheduledDateTime,
-                        ]);
-
-                        // Vérification des erreurs de requête
-                        if ($response->failed()) {
-                            // Gérer l'erreur de requête
-                            return response()->json(['error' => 'Échec de la publication sur la page Facebook'], 500);
-                        }
-                        // Extraction du social_id du post publié
-                        $postData = $response->json();
-                        $socialId = $postData['id'];
-
-                    }
+                 
 
                     // **Enregistrement du post dans la base de données**
                     $post->social_id = $socialId;
